@@ -30,7 +30,7 @@ CREATE TABLE Albums(
 CREATE TABLE creating(
 	uid VARCHAR(20) not null,
     aid VARCHAR(20),
-    primary key (uid),   -- weak entity of album in User: Album that both have key constraint and total participation
+    primary key (uid),   
     foreign key (aid) references Albums(aid) on delete cascade,
     foreign key (uid) references Users(uid) on delete cascade
 );
@@ -56,7 +56,7 @@ CREATE TABLE associate(
 );
 
 CREATE TABLE contain(
-	aid VARCHAR(20) not null ,  -- weak entity of photos in album : photos
+	aid VARCHAR(20) not null ,
     pid VARCHAR(20),
     primary key (aid),  -- key constraint that for each photo only stored in one album
     foreign key (pid) references Photos(pid) on delete cascade
@@ -79,16 +79,16 @@ CREATE TABLE Comments(
 );
 
 CREATE TABLE comment_on(
-	pid VARCHAR(20) not null, -- weak entity of comments in photos : comments
+	pid VARCHAR(20) not null,
     cid VARCHAR(20),
     primary key (pid), -- key constrant that for each comments, it can only comments on one single photo
     foreign key (cid) references Comments(cid) on update cascade
 );
 
 CREATE TABLE creates(
-	uid VARCHAR(20) not null , -- weak entity of comments in users : comments
+	uid VARCHAR(20) not null ,
     cid VARCHAR(20),
-    primary key (uid), -- key contraints that for each comments, it can only be created by onw user.
+    primary key (uid), -- key contraints that for each comments, it can only be created by one user.
     foreign key (cid) references Comments(cid) on delete cascade
 );
 
