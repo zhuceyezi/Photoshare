@@ -51,7 +51,7 @@ class User(flask_login.UserMixin):
 @login_manager.user_loader
 def user_loader(email):
     users = getUserList()
-    if not(email) or email not in str(users):
+    if not (email) or email not in str(users):
         return
     user = User()
     user.id = email
@@ -62,7 +62,7 @@ def user_loader(email):
 def request_loader(request):
     users = getUserList()
     email = request.form.get('email')
-    if not(email) or email not in str(users):
+    if not (email) or email not in str(users):
         return
     user = User()
     user.id = email
@@ -216,19 +216,29 @@ def upload_file():
 # end photo uploading code
 
 
-def addFriend():
+def addFriend(from_user_uid, to_user_uid):
     """ User can add another user as friend
     The "Friend" here is more like "follow": it is one way instead of mutual """
-    pass
+    cursor = conn.cursor()
+    query = f'''INSERT INTO be_friend (uid1, uid2) VALUES ({from_user}, {to_user})'''
+    cursor.execute(query)
+    conn.commit()
 
 
-def listAllFriends():
+def listAllFriends(uid):
     """ list all friends of an user. """
-    pass
+    cursor = conn.cursor()
+    query = f''' SELECT (uid2) FROM be_friend WHERE uid1 = {uid} '''
+    cursor.execute(query)
+    friends = cursor.fetchall()
+    return friends
 
 
 def getActivity():
-    """ get the activity/contribution of an user """
+    """ get the activity/contribution of an user\n
+    Activity = number of photos uploaded by the user + number of comments by the user
+    """
+    cursor = conn.cursor()
     pass
 
 
@@ -265,13 +275,16 @@ def searchByTags():
     the search button, and be presented with all photos that contain both the tag "friends" and the tag "boston". """
     pass
 
+
 def leaveComment():
     """ user leaves a comment. """
     pass
 
+
 def likePhoto():
     """ user likes a photo """
     pass
+
 
 def searchUsersOnComment():
     """ find the users that have created comments that exactly match the 
@@ -279,14 +292,16 @@ def searchUsersOnComment():
     in descending order. """
     pass
 
+
 def friendRecommendation():
     """ recommend potential friends of a user. """
     pass
 
+
 def photoRecommendation():
     """ recommend photos that one user may like """
     pass
-    
+
 # default page
 
 
