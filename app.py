@@ -220,18 +220,24 @@ def addFriend(from_user_uid, to_user_uid):
     """ User can add another user as friend
     The "Friend" here is more like "follow": it is one way instead of mutual """
     cursor = conn.cursor()
-    query = f'''INSERT INTO be_friend (uid1, uid2) VALUES ({from_user}, {to_user})'''
+    query = f'''INSERT INTO be_friend (uid_from, uid_to) VALUES ({from_user_uid}, {to_user_uid})'''
     cursor.execute(query)
     conn.commit()
 
 
 def listAllFriends(uid):
-    """ list all friends of an user. """
+    """ 
+    Input: uid of user.\n
+    Output: a list of tuples (uid_from, uid_to)\n
+    list all friends of an user. 
+    """
     cursor = conn.cursor()
-    query = f''' SELECT (uid2) FROM be_friend WHERE uid1 = {uid} '''
+    query = f''' SELECT (uid_to) FROM be_friend WHERE uid1 = {uid} '''
     cursor.execute(query)
     friends = cursor.fetchall()
     return friends
+
+# steven do
 
 
 def getActivity():
@@ -241,11 +247,15 @@ def getActivity():
     cursor = conn.cursor()
     pass
 
+# steven do
+
 
 def getAllPhotos():
     """ get all photos on the website.\n
     ***We assume all photos are *public* """
     pass
+
+# steven do
 
 
 def createAlbum():
@@ -275,15 +285,21 @@ def searchByTags():
     the search button, and be presented with all photos that contain both the tag "friends" and the tag "boston". """
     pass
 
+# steven do
+
 
 def leaveComment():
     """ user leaves a comment. """
     pass
 
+# steven do
+
 
 def likePhoto():
     """ user likes a photo """
     pass
+
+# steven do
 
 
 def searchUsersOnComment():
