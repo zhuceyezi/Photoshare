@@ -23,7 +23,7 @@ app.secret_key = 'aleafy'  # Change this!
 
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'
+app.config['MYSQL_DATABASE_password'] = 'zhuceyezi'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -156,18 +156,18 @@ def register_user():
         return flask.redirect(flask.url_for('register'))
 
 
-def getUsersPhotos(uid):
+def getUsersPhotos(user_id):
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT imgdata, picture_id, caption FROM Pictures WHERE user_id = '{0}'".format(uid))
-    # NOTE return a list of tuples, [(imgdata, pid, caption), ...]
+        "SELECT imgdata, photo_id, caption FROM Pictures WHERE user_id = '{0}'".format(user_id))
+    # NOTE return a list of tuples, [(imgdata, photo_id, caption), ...]
     return cursor.fetchall()
 
 
 def getUserIdFromEmail(email):
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT user_id  FROM Users WHERE email = '{0}'".format(email))
+        "SELECT user_id FROM Users WHERE email = '{0}'".format(email))
     return cursor.fetchone()[0]
 
 
@@ -201,38 +201,38 @@ def allowed_file(filename):
 @flask_login.login_required
 def upload_file():
     if request.method == 'POST':
-        uid = getUserIdFromEmail(flask_login.current_user.id)
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
         imgfile = request.files['photo']
         caption = request.form.get('caption')
         photo_data = imgfile.read()
         cursor = conn.cursor()
         cursor.execute(
-            '''INSERT INTO Pictures (imgdata, user_id, caption) VALUES (%s, %s, %s )''', (photo_data, uid, caption))
+            '''INSERT INTO Pictures (user_id, imgdata, caption) VALUES (%s, %s, %s )''', (user_id, photo_data, caption))
         conn.commit()
-        return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(uid), base64=base64)
+        return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), base64=base64)
     # The method is GET so we return a  HTML form to upload the a photo.
     else:
         return render_template('upload.html')
 # end photo uploading code
 
 
-def addFriend(from_user_uid, to_user_uid):
+def addFriend(from_user_user_id, to_user_user_id):
     """ User can add another user as friend
     The "Friend" here is more like "follow": it is one way instead of mutual """
     cursor = conn.cursor()
-    query = f'''INSERT INTO be_friend (uid_from, uid_to) VALUES ({from_user_uid}, {to_user_uid})'''
+    query = f'''INSERT INTO be_friend (user_id_from, user_id_to) VALUES ({from_user_user_id}, {to_user_user_id})'''
     cursor.execute(query)
     conn.commit()
 
 
-def listAllFriends(uid):
+def listAllFriends(user_id):
     """ 
-    Input: uid of user.\n
-    Output: a list of tuples (uid_from, uid_to)\n
+    Input: (int) user_id of user.\n
+    Output: a list of tuples (user_id_from, user_id_to)\n
     list all friends of an user. 
     """
     cursor = conn.cursor()
-    query = f''' SELECT (uid_to) FROM be_friend WHERE uid1 = {uid} '''
+    query = f''' SELECT (user_id_to) FROM be_friend WHERE user_id1 = {user_id} '''
     cursor.execute(query)
     friends = cursor.fetchall()
     return friends
@@ -263,13 +263,25 @@ def createAlbum():
     pass
 
 
-def viewAllPhotoByTag():
-    """ Exhibit all photos of a certain tag """
-    pass
+def viewAllPhotoByTag(tag):
+    """ 
+    Input: (str) tag of a photo.\n
+    Output: a list of photo tuples (photo_id, imgdata, caption)\n
+    Exhibit all photos of a certain tag
+    """
+    cursor = conn.cursor()
+    query = f''' SELECT * FROM Photos WHERE tag = {tag} '''
+    cursor.execute(query)
+    photos = cursor.fetchall()
+    return photos
 
 
-def viewUserPhotoByTag():
-    """ Exhibit all the user's photos with a certain tag """
+def viewUserPhotoByTag(tag):
+    """ 
+    Input: (str) tag of a photo.\n
+    Output: a list of photo tuples (photo_id, imgdata, caption)\n
+    Exhibit all photos of a certain tag of one user
+    """
     pass
 
 
