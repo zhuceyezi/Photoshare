@@ -27,7 +27,9 @@ CREATE TABLE be_friend(
     user_id_to INT4,
     PRIMARY KEY (user_id_from, user_id_to),
     FOREIGN KEY (user_id_to) REFERENCES Users(user_id) ON DELETE CASCADE,
-	FOREIGN KEY (user_id_from) REFERENCES Users(user_id) ON DELETE CASCADE
+	FOREIGN KEY (user_id_from) REFERENCES Users(user_id) ON DELETE CASCADE,
+    CONSTRAINT diff_user 
+        CHECK (user_id_from <> user_id_to)
 );
  -- ALTER TABLE be_friend ADD INDEX(user_id1);
  -- ALTER TABLE be_friend CHANGE user_id1 user_id1 INT4 AUTO_INCREMENT;
@@ -86,7 +88,7 @@ CREATE TABLE Comments(
 
 INSERT INTO Users (email, password) VALUES ('test@bu.edu', 'test');
 INSERT INTO Users (email, password) VALUES ('test1@bu.edu', 'test');
-    
-    
+INSERT INTO Albums (album_name, user_id, date_created) VALUES ("test", 1, "2023-02-08");
+
 
     
