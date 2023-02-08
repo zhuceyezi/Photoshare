@@ -23,8 +23,8 @@ app.secret_key = 'aleafy'  # Change this!
 
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_password'] = 'zhuceyezi'
-app.config['MYSQL_DATABASE_DB'] = 'photoshare'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'
+app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 
@@ -126,6 +126,11 @@ def unauthorized_handler():
 # you can specify specific methods (GET/POST) in function header instead of inside the functions as seen earlier
 
 
+@app.route('/create_album', methods=['GET'])
+def create_album():
+    return render_template('create_album.html')
+
+
 @app.route("/register", methods=['GET'])
 def register():
     return render_template('register.html', supress='True')
@@ -202,12 +207,13 @@ def allowed_file(filename):
 def upload_file():
     if request.method == 'POST':
         user_id = getUserIdFromEmail(flask_login.current_user.id)
+        album_id = request.form.get('album_id')
         imgfile = request.files['photo']
         caption = request.form.get('caption')
         photo_data = imgfile.read()
         cursor = conn.cursor()
         cursor.execute(
-            '''INSERT INTO Pictures (user_id, imgdata, caption) VALUES (%s, %s, %s )''', (user_id, photo_data, caption))
+            f'INSERT INTO Pictures (user_id, album_id, imgdata, caption) VALUES ({user_id}, {album_id}, "{photo_data}", "{caption}")')
         conn.commit()
         return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), base64=base64)
     # The method is GET so we return a  HTML form to upload the a photo.
@@ -276,20 +282,29 @@ def viewAllPhotoByTag(tag):
     return photos
 
 
-def viewUserPhotoByTag(tag):
+def viewUserPhotoByTag(user_id, tag):
     """ 
-    Input: (str) tag of a photo.\n
+    Input: (int) user_id of user.\n
+    (str) tag of a photo.\n
     Output: a list of photo tuples (photo_id, imgdata, caption)\n
     Exhibit all photos of a certain tag of one user
     """
-    pass
+    cursor = conn.cursor()
+    query = f''' SELECT * FROM Photos WHERE user_id = {user_id} AND tag = {tag} '''
+    cursor.execute(query)
+    photos = cursor.fetchall()
+    return photos
 
 
 def viewMostPopularTags():
     """ List the most popular three tags, i.e., the three tags 
         that are associated with the largest number of photos, in descending
         popularity order."""
-    pass
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT word FROM (SELECT word, COUNT(photo_id) FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3)")
+    tags = cursor.fetchall()
+    return tags
 
 
 def searchByTags():
