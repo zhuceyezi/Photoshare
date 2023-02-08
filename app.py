@@ -12,10 +12,11 @@ import flask
 from flask import Flask, Response, request, render_template, redirect, url_for
 from flaskext.mysql import MySQL
 import flask_login
-
+import datetime
 # for image uploading
 import os
 import base64
+import time
 
 mysql = MySQL()
 app = Flask(__name__)
@@ -126,9 +127,23 @@ def unauthorized_handler():
 # you can specify specific methods (GET/POST) in function header instead of inside the functions as seen earlier
 
 
-@app.route('/create_album', methods=['GET'])
+@app.route('/create_album', methods=['GET', 'POST'])
 def create_album():
-    return render_template('create_album.html')
+    if request.method == "POST":
+        album_name = request.form.get('album_name')
+        if album_name == "__secret__":
+            return render_template('create_album.html', message='Test Good!')
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
+        ts = time.time()
+        date_created = datetime.datetime.fromtimestamp(
+            ts).strftime('%Y-%m-%d')
+        cursor = conn.cursor()
+        cursor.execute(
+            f" INSERT INTO Albums (album_name, user_id, date_created) VALUES ('{album_name}', '{user_id}', '{date_created}')")
+        conn.commit()
+        return render_template('create_album.html', message='Album Created!')
+    else:
+        return render_template('create_album.html')
 
 
 @app.route("/register", methods=['GET'])
@@ -164,7 +179,7 @@ def register_user():
 def getUsersPhotos(user_id):
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT imgdata, photo_id, caption FROM Pictures WHERE user_id = '{0}'".format(user_id))
+        "SELECT imgdata, photo_id, caption FROM Photos WHERE user_id = '{0}'".format(user_id))
     # NOTE return a list of tuples, [(imgdata, photo_id, caption), ...]
     return cursor.fetchall()
 
@@ -213,10 +228,9 @@ def upload_file():
         # photo_data = base64.standard_b64encode(imgfile.read())
         photo_data = imgfile.read()
         cursor = conn.cursor()
-        query = '''INSERT INTO Photos (user_id, album_id, imgdata, caption) VALUES ({0}, {1}, {2}, {3})'''.format(
-            user_id, album_id, photo_data, caption)
+        query = "INSERT INTO Photos (user_id, album_id, imgdata, caption) VALUES (%s, %s, %s, %s)"
         # print(query)
-        cursor.execute(query)
+        cursor.execute(query, (user_id, album_id, photo_data, caption))
         conn.commit()
         return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), base64=base64)
     # The method is GET so we return a  HTML form to upload the a photo.
@@ -272,6 +286,25 @@ def createAlbum():
     pass
 
 
+def createTag(word):
+    """ 
+    Input: (string) word of a tag.\n
+    Output: None\n
+    Creates a tag """
+    cursor = conn.cursor()
+    query = f"INSERT INTO Tags (word) VALUES ('{word}')"
+    cursor.execute(query)
+    conn.commit()
+
+
+def addTagToPhoto(word, photo_id):
+    """ associates a tag with a photo """
+    cursor = conn.cursor()
+    query = f"INSERT INTO associate (photo_id, word) VALUES ('{photo_id}', '{word}')"
+    cursor.execute(query)
+    conn.commit()
+
+
 def viewAllPhotoByTag(tag):
     """ 
     Input: (str) tag of a photo.\n
@@ -279,7 +312,7 @@ def viewAllPhotoByTag(tag):
     Exhibit all photos of a certain tag
     """
     cursor = conn.cursor()
-    query = f''' SELECT * FROM Photos WHERE tag = {tag} '''
+    query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate WHERE word = '{tag}'"
     cursor.execute(query)
     photos = cursor.fetchall()
     return photos
@@ -293,7 +326,8 @@ def viewUserPhotoByTag(user_id, tag):
     Exhibit all photos of a certain tag of one user
     """
     cursor = conn.cursor()
-    query = f''' SELECT * FROM Photos WHERE user_id = {user_id} AND tag = {tag} '''
+    query = f"SELECT photo_id FROM(SELECT associate.photo_id, Photos.user_id,\
+             Photos.caption FROM Photos, associate WHERE word='{tag}') as x WHERE x.user_id = {user_id}"
     cursor.execute(query)
     photos = cursor.fetchall()
     return photos
@@ -305,7 +339,7 @@ def viewMostPopularTags():
         popularity order."""
     cursor = conn.cursor()
     cursor.execute(
-        f"SELECT word FROM (SELECT word, COUNT(photo_id) FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3)")
+        f"SELECT word FROM (SELECT word, COUNT(photo_id) FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3) as x")
     tags = cursor.fetchall()
     return tags
 
