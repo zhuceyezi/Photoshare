@@ -319,7 +319,9 @@ def searchByTags():
 
 
 def leaveComment():
-    """ user leaves a comment. """
+    """ user leaves a comment. 
+    NOTE: Users cannot leave a comment own their own photo.
+    """
     pass
 
 # steven do
