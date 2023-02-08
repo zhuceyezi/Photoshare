@@ -210,9 +210,11 @@ def upload_file():
         album_id = request.form.get('album_id')
         imgfile = request.files['photo']
         caption = request.form.get('caption')
-        photo_data = base64.standard_b64encode(imgfile.read())
+        # photo_data = base64.standard_b64encode(imgfile.read())
+        photo_data = imgfile.read()
         cursor = conn.cursor()
-        query = f'INSERT INTO Photos (user_id, album_id, imgdata, caption) VALUES ({user_id}, {album_id}, {photo_data}, {caption})'
+        query = '''INSERT INTO Photos (user_id, album_id, imgdata, caption) VALUES ({0}, {1}, {2}, {3})'''.format(
+            user_id, album_id, photo_data, caption)
         # print(query)
         cursor.execute(query)
         conn.commit()
