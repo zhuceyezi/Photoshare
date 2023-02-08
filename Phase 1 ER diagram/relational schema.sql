@@ -31,8 +31,7 @@ CREATE TABLE be_friend(
     CONSTRAINT diff_user 
         CHECK (user_id_from <> user_id_to)
 );
- -- ALTER TABLE be_friend ADD INDEX(user_id1);
- -- ALTER TABLE be_friend CHANGE user_id1 user_id1 INT4 AUTO_INCREMENT;
+
 
 CREATE TABLE Albums(
     album_id INT4 PRIMARY KEY AUTO_INCREMENT, 
@@ -84,6 +83,8 @@ CREATE TABLE Comments(
     date_comment date,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (photo_id) REFERENCES Photos(photo_id) ON DELETE CASCADE
+    -- addtional constraint: user cannot comment on own photo
+    -- can't really implement in mysql
 );
 
 INSERT INTO Users (email, password) VALUES ('test@bu.edu', 'test');
