@@ -210,10 +210,11 @@ def upload_file():
         album_id = request.form.get('album_id')
         imgfile = request.files['photo']
         caption = request.form.get('caption')
-        photo_data = imgfile.read()
+        photo_data = base64.standard_b64encode(imgfile.read())
         cursor = conn.cursor()
-        cursor.execute(
-            f'INSERT INTO Pictures (user_id, album_id, imgdata, caption) VALUES ({user_id}, {album_id}, "{photo_data}", "{caption}")')
+        query = f'INSERT INTO Photos (user_id, album_id, imgdata, caption) VALUES ({user_id}, {album_id}, {photo_data}, {caption})'
+        # print(query)
+        cursor.execute(query)
         conn.commit()
         return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), base64=base64)
     # The method is GET so we return a  HTML form to upload the a photo.

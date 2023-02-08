@@ -26,8 +26,8 @@ CREATE TABLE be_friend(
 	user_id_from INT4, 
     user_id_to INT4,
     PRIMARY KEY (user_id_from, user_id_to),
-    FOREIGN KEY (user_id_to) REFERENCES Users(user_id),
-	FOREIGN KEY (user_id_from) REFERENCES Users(user_id)
+    FOREIGN KEY (user_id_to) REFERENCES Users(user_id) ON DELETE CASCADE,
+	FOREIGN KEY (user_id_from) REFERENCES Users(user_id) ON DELETE CASCADE
 );
  -- ALTER TABLE be_friend ADD INDEX(user_id1);
  -- ALTER TABLE be_friend CHANGE user_id1 user_id1 INT4 AUTO_INCREMENT;
@@ -37,7 +37,7 @@ CREATE TABLE Albums(
 	album_name VARCHAR(255),
     user_id INT4 NOT NULL, 
     date_created date,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
 
@@ -49,8 +49,8 @@ CREATE TABLE Photos(
   caption VARCHAR(255),
   INDEX uphoto_id_idx (user_id),
   CONSTRAINT photos_pk PRIMARY KEY (photo_id),
-  FOREIGN KEY (user_id) REFERENCES Users(user_id),
-  FOREIGN KEY (album_id) REFERENCES Albums(album_id)
+  FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (album_id) REFERENCES Albums(album_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Tags(
@@ -61,7 +61,7 @@ CREATE TABLE associate(
 	photo_id INT4,
     word VARCHAR(25),
     PRIMARY KEY (photo_id, word),
-    FOREIGN KEY (photo_id) REFERENCES Photos(photo_id),
+    FOREIGN KEY (photo_id) REFERENCES Photos(photo_id) ON DELETE CASCADE,
     FOREIGN KEY (word) REFERENCES Tags(word)
 );
 
@@ -70,8 +70,8 @@ CREATE TABLE user_like_Photo(
 	user_id INT4,
     photo_id INT4,
     PRIMARY KEY (user_id, photo_id),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id),
-    FOREIGN KEY (photo_id) REFERENCES Photos(photo_id)
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (photo_id) REFERENCES Photos(photo_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Comments(
@@ -80,8 +80,8 @@ CREATE TABLE Comments(
     photo_id INT4 NOT NULL,
     content VARCHAR(255),
     date_comment date,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id),
-    FOREIGN KEY (photo_id) REFERENCES Photos(photo_id)
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (photo_id) REFERENCES Photos(photo_id) ON DELETE CASCADE
 );
 
 INSERT INTO Users (email, password) VALUES ('test@bu.edu', 'test');
