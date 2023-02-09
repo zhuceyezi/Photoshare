@@ -225,6 +225,7 @@ def upload_file():
         album_id = request.form.get('album_id')
         imgfile = request.files['photo']
         caption = request.form.get('caption')
+        tags = request.form.get("tags").split(" ")
         # photo_data = base64.standard_b64encode(imgfile.read())
         photo_data = imgfile.read()
         cursor = conn.cursor()
@@ -232,11 +233,70 @@ def upload_file():
         # print(query)
         cursor.execute(query, (user_id, album_id, photo_data, caption))
         conn.commit()
+        if tags[0] != '':
+            cursor.execute(
+                f"SELECT photo_id FROM Photos WHERE user_id = {user_id} AND album_id = {album_id} ORDER BY photo_id DESC LIMIT 1")
+            photo_id = cursor.fetchone()[0]
+            # print(photo_id)
+            for tag in tags:
+                createTagIfNotExist(tag)
+                addTagToPhoto(tag, photo_id)
         return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), base64=base64)
     # The method is GET so we return a  HTML form to upload the a photo.
     else:
-        return render_template('upload.html')
+        return render_template('upload.html', albums=getUsersAlbums(getUserIdFromEmail(flask_login.current_user.id)))
 # end photo uploading code
+
+
+def deletePhoto(photo_id):
+    cursor = conn.cursor()
+    cursor.execute(f"DELETE FROM Photos WHERE photo_id = '{photo_id}'")
+    conn.commit()
+
+
+@app.route('/gallery', methods=["GET"])
+def getAllPhotos():
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT imgdata, photo_id, caption FROM Photos")
+    conn.commit()
+    photos = cursor.fetchall()
+    return render_template('gallery.html', photos=photos, base64=base64)
+
+
+def getUsersAlbums(user_id):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT album_id, album_name FROM Albums WHERE user_id = {user_id}")
+    conn.commit()
+    return cursor.fetchall()
+
+
+@app.route('/album_gallery', methods=["GET"])
+def getAllAlbums():
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT a.album_id, a.album_name, a.date_created, COUNT(p.photo_id), a.user_id\
+        FROM Albums a, Photos p WHERE p.album_id=a.album_id\
+        GROUP BY a.album_id\
+        UNION\
+        SELECT a.album_id, a.album_name, a.date_created, 0, a.user_id\
+        FROM Albums a\
+        EXCEPT\
+        SELECT a.album_id, a.album_name, a.date_created, 0, a.user_id\
+        FROM Albums a, Photos p WHERE p.album_id=a.album_id\
+        GROUP BY a.album_id")
+    conn.commit()
+    albums = cursor.fetchall()
+    return render_template('album_gallery.html', albums=albums)
+
+
+def getUserNameFromId(user_id):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT first_name, last_name FROM Users WHERE user_id = {user_id}")
+    conn.commit()
+    return cursor.fetchone()[0]
+    
 
 
 def addFriend(from_user_user_id, to_user_user_id):
@@ -286,14 +346,22 @@ def createAlbum():
     pass
 
 
-def createTag(word):
+def createTagIfNotExist(word):
     """ 
     Input: (string) word of a tag.\n
     Output: None\n
     Creates a tag """
     cursor = conn.cursor()
-    query = f"INSERT INTO Tags (word) VALUES ('{word}')"
-    cursor.execute(query)
+    cursor.execute(f"SELECT word FROM Tags WHERE word = '{word}'")
+    if cursor.fetchone() is None:
+        query = f"INSERT INTO Tags (word) VALUES ('{word}')"
+        cursor.execute(query)
+        conn.commit()
+
+
+def deleteTag(word):
+    cursor = conn.cursor()
+    cursor.execute(f"DELETE FROM Tags WHERE word = '{word}'")
     conn.commit()
 
 
@@ -302,6 +370,13 @@ def addTagToPhoto(word, photo_id):
     cursor = conn.cursor()
     query = f"INSERT INTO associate (photo_id, word) VALUES ('{photo_id}', '{word}')"
     cursor.execute(query)
+    conn.commit()
+
+
+def unassociateTag(word, photo_id):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"DELETE FROM associate WHERE photo_id = '{photo_id}' AND word = '{word}'")
     conn.commit()
 
 
@@ -326,8 +401,8 @@ def viewUserPhotoByTag(user_id, tag):
     Exhibit all photos of a certain tag of one user
     """
     cursor = conn.cursor()
-    query = f"SELECT photo_id FROM(SELECT associate.photo_id, Photos.user_id,\
-             Photos.caption FROM Photos, associate WHERE word='{tag}') as x WHERE x.user_id = {user_id}"
+    query = f"SELECT photo_id, imgdata, FROM(SELECT associate.photo_id, Photos.user_id,\
+             Photos.caption, Photos.imgdata FROM Photos, associate WHERE word='{tag}') as x WHERE x.user_id = {user_id}"
     cursor.execute(query)
     photos = cursor.fetchall()
     return photos
@@ -384,7 +459,41 @@ def photoRecommendation():
     """ recommend photos that one user may like """
     pass
 
+
+def getCurrentUserId():
+    return getUserIdFromEmail(flask_login.current_user.id)
+
+
+@app.route('/view_albums', methods=['GET'])
+@flask_login.login_required
+def getUserAlbums():
+    user_id = getCurrentUserId()
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT a.album_id, a.album_name, a.date_created, COUNT(p.photo_id)\
+        FROM Albums a, Photos p WHERE p.album_id=a.album_id AND a.user_id={user_id} GROUP BY a.album_id\
+        UNION\
+        SELECT a.album_id, a.album_name, a.date_created, 0\
+        FROM Albums a WHERE a.user_id={user_id} EXCEPT\
+        SELECT a.album_id, a.album_name, a.date_created, 0\
+        FROM Albums a, Photos p WHERE p.album_id=a.album_id AND a.user_id={user_id} GROUP BY a.album_id ")
+    conn.commit()
+    albums = cursor.fetchall()
+    return render_template('view_albums.html', albums=albums)
 # default page
+
+
+@app.route('/open_album', methods=["GET"])
+def getPhotosFromAlbum():
+    album_id = request.args.get("album_id")
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT imgdata, photo_id, caption FROM Photos WHERE album_id='{album_id}'")
+    conn.commit()
+    photos = cursor.fetchall()
+    cursor.execute(f"SELECT album_name FROM Albums WHERE album_id={album_id}")
+    album_name = cursor.fetchone()[0]
+    return render_template('open_album.html', album_name=album_name, photos=photos, base64=base64)
 
 
 @app.route("/", methods=['GET'])

@@ -1,0 +1,16 @@
+<head>
+  <title>My albums</title>
+</head>
+<body>
+  <h1>Here are your albums!</h1>
+  {% if albums %}
+  <ul>
+    {% for album in albums %}
+    <li>
+      {{album[0]}}: <a href="/open_album?album_id={{album[0]}}">{{album[1]}}</a>,
+      {{album[3]}} photo(s), created on {{album[2]}}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</body>
