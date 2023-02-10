@@ -1,0 +1,17 @@
+<head>
+  <title>All albums</title>
+</head>
+<body>
+  <h1>Here are all albums on the site!</h1>
+  {% if albums %}
+  <ul>
+    {% for album in albums %}
+    <li>
+      {{album[0]}}:
+      <a href="/open_album?album_id={{album[0]}}">{{album[1]}}</a>, {{album[3]}}
+      photo(s), created on {{album[2]}}, owner: {{album[4]}}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</body>
