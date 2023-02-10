@@ -24,7 +24,7 @@ app.secret_key = 'aleafy'  # Change this!
 
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'Huohx123'              # changed passowrd from 'zhuceyezi'  to mine
 app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -260,30 +260,60 @@ def listAllFriends(user_id):
     friends = cursor.fetchall()
     return friends
 
-# steven do
-
-
-def getActivity():
-    """ get the activity/contribution of an user\n
+# steven done
+def getActivity(user_id):
+    """ 
+    Input: (int) user_id of user.\n
+    Output: (int) activity of the user\n
+    
+    get the activity/contribution of an user\n
     Activity = number of photos uploaded by the user + number of comments by the user
     """
     cursor = conn.cursor()
-    pass
+    count_photos = f''' SELECT COUNT(*) FROM Photos WHERE user_id = {user_id} '''
+    count_comments = f''' SELECT COUNT(*) FROM Comments WHERE user_id = {user_id} '''
+    
+    cursor.execute(count_photos)
+    photos = cursor.fetchone()[0]
+    
+    cursor.execute(count_comments)
+    comments = cursor.fetchone()[0]
+    
+    # checking if there are no photos or comments associated with the user specified by user_id. 
+    if not photos and not comments:     
+        return None
+    
+    activity = photos + comments
+    cursor.close()
+    return activity
 
-# steven do
 
-
+# steven done
+@app.route("/photos", methods=['GET'])
 def getAllPhotos():
-    """ get all photos on the website.\n
+    """ 
+    Input: None\n
+    OUTPUT: (list) of tuples  (imgdata, photo_id, caption)\n
+    
+    get all photos on the website.\n
     ***We assume all photos are *public* """
-    pass
+    
+    cursor = conn.cursor()
+    cursor.execute("SELECT photo_id, imgdata, caption FROM Photos")
+    photos = cursor.fetchall()
+    if not photos:                  # if there are no photos, return error message
+        return "photos not found", 404
+        
+    photos = [{'photo_id': photo_id,  'imgdata': imgdata, 'caption': caption} for (photo_id, imgdata, caption) in cursor.fetchall()]
+    cursor.close()
+    return photos
+    
 
 # steven do
-
-
-def createAlbum():
-    """ Creates an album """
+"""  The fucntion below is not needed since it already be done at line 130 ~ 146
+ def createAlbum():
     pass
+"""
 
 
 def createTag(word):
@@ -344,48 +374,185 @@ def viewMostPopularTags():
     return tags
 
 
+
+
 def searchByTags():
     """ search by a list of tags.For example, a visitor could enter the words "friends boston" in an input box, click 
     the search button, and be presented with all photos that contain both the tag "friends" and the tag "boston". """
     pass
 
-# steven do
 
 
-def leaveComment():
-    """ user leaves a comment. 
+
+
+# steven done
+@app.route("/photos/<int:photo_id>/comments", methods=['POST'])
+def leaveComment(photo_id):
+    """ 
+    input: (int) photo_id of a photo that user is comment on.\n
+    Output: None\n
+    
+    user leaves a comment. 
     NOTE: Users cannot leave a comment own their own photo.
+    
     """
-    pass
+    user_id = request.form.get('user_id')       # get the user_id from the form
+    comment = request.form.get('comment')       
 
-# steven do
+    cursor = conn.cursor()
+    check = f"SELECT user_id FROM Photos WHERE photo_id = {photo_id}"   # check if the user is the owner of the photo
+    cursor.execute(check)
+    owner = cursor.fetchone()[0]            # get the owner of the photo
+    if owner == user_id:        # if the user is the owner of the photo, return error message
+        return "You cannot leave a comment on your own photo.", 400
+    
+    # else insert the comment into the database
+    insert = f"INSERT INTO Comments (photo_id, user_id, comment) VALUES ({photo_id}, {user_id}, '{comment}')"   # insert the comment into the database
+    cursor.execute(insert)
+    conn.commit()  # commit changes made to the database
+    cursor.close()
+    return "Comment left successfully.", 201    # return success message
 
 
-def likePhoto():
-    """ user likes a photo """
-    pass
 
-# steven do
+# steven done
+@app.route("/like/<int:photo_id>", methods=['POST'])
+def likePhoto(photo_id):
+    """ 
+    Input: (int) photo_id \n
+    Output: JSON object indicating whether the like action was successful or not.\n
+    
+    user likes a photo 
+    """
+    user_id = request.form.get('user_id')       # get the user_id from the form
+    if user_id is None:
+        return jsonify({'error': 'User ID is required to like a photo'}), 400
+    
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Photos WHERE photo_id = %s", (photo_id,))   # check if the photo exists
+    photo = cursor.fetchone()          # get the photo
+    if photo is None:               # if the photo does not exist, return error message
+        return jsonify({'error': 'Photo not found'}), 404
+    
+    if photo['user_id'] == user_id:         # if the user is the owner of the photo, return error message
+        return jsonify({'error': "Users cannot like their own photo"}), 400
+    
+    cursor.execute("INSERT INTO Likes (user_id, photo_id) VALUES (%s, %s)", (user_id, photo_id)) # insert the like into the database
+    conn.commit()                       # commit changes made to the database
+    cursor.close()                      # close the cursor
+    
+    return jsonify({'message': 'Photo liked successfully'}), 201        # return success message
 
 
-def searchUsersOnComment():
-    """ find the users that have created comments that exactly match the 
+
+# steven done
+def searchUsersOnComment(query_text):
+    """
+    Input: (str) query_text, the text to search for in user comments.
+    Output: (list) a list of tuples, each tuple containing the name of a user and the number of comments that match the query text. 
+            The list is ordered by the number of comments in descending order.
+    
+    find the users that have created comments that exactly match the 
     input query text. Return the names of these users ordered by the number of comments that match the query 
-    in descending order. """
-    pass
+    in descending order. 
+    """
+    cursor = conn.cursor()
+    # query to find the users that have created comments that exactly match the input query text
+    query = f'''                
+        SELECT u.name, COUNT(c.comment_id)
+        FROM Users u
+        JOIN Comments c ON u.user_id = c.user_id
+        WHERE c.content LIKE %s                         # use place holder to avoid sql injection
+        GROUP BY u.user_id
+        ORDER BY COUNT(c.comment_id) DESC
+    '''
+    cursor.execute(query,('%' + query_text + '%',) )        # hold the query text in a tuple
+    result = cursor.fetchall()  # get the result
+    cursor.close()  # close the cursor
+    return result
 
 
-def friendRecommendation():
-    """ recommend potential friends of a user. """
-    pass
+# steven done
+def friendRecommendation(user_id):
+    """
+    Input: (int) user_id, the id of the input user.
+    Output: (list) a list of tuples, each tuple containing the name and id of a potential friend for the input user. 
+    The list is ordered by the number of mutual friends in descending order.
+    
+    recommend potential friends of a user. A potential friend of the input user is defined as some user who does not have a friend relationship with the input user, 
+    AND has at least one mutual friend in between the input user and the potential friend user.
+    """
+    cursor = conn.cursor()          
+    query = '''
+        SELECT 
+            u.user_id, u.first_name, u.last_name,
+            COUNT(DISTINCT bf2.user_id_from) AS mutual_friends 
+        FROM 
+            Users u 
+            LEFT JOIN be_friend bf1 ON bf1.user_id_to = u.user_id 
+            LEFT JOIN be_friend bf2 ON bf2.user_id_from = bf1.user_id_from 
+                                        AND bf2.user_id_to != %s
+        WHERE 
+            u.user_id != %s 
+            AND bf1.user_id_from != %s 
+            AND NOT EXISTS (
+                SELECT * 
+                FROM be_friend 
+                WHERE user_id_from = %s 
+                        AND user_id_to = u.user_id
+            )
+        GROUP BY 
+            u.user_id 
+        ORDER BY 
+            mutual_friends DESC 
+    '''
+    cursor.execute(query, (user_id, user_id, user_id, user_id))  # execute the query with holders to avoid sql injection
+    result = cursor.fetchall()
+    cursor.close()                  # close the cursor
+    return result
 
 
-def photoRecommendation():
-    """ recommend photos that one user may like """
-    pass
+# steven done
+def photoRecommendation(user_id):
+    """
+    Input: (int) user_id - the id of the user for whom to recommend photos
+    Output: (list) a list of tuples, each containing the photo_id and caption of a photo that the user may like, 
+    ordered by the number of similar likes in descending order.
+    
+    Recommend photos that the user with the input id may like based on their likesPhoto history.
+    """
+    cursor = conn.cursor()
+    # The query retrieves the photo_id, caption, and the number of similar likes for each photo, 
+    # based on the user's liking history.
+    query = '''
+        SELECT 
+            p.photo_id, p.caption,
+            COUNT(DISTINCT ulp2.user_id) AS similar_likes
+        FROM 
+            Photos p 
+            LEFT JOIN user_like_photo ulp1 ON ulp1.photo_id = p.photo_id 
+            LEFT JOIN user_like_photo ulp2 ON ulp2.photo_id = ulp1.photo_id
+                                            AND ulp2.user_id != %s
+        WHERE 
+            ulp1.user_id = %s
+            AND NOT EXISTS (
+                SELECT * 
+                FROM user_like_photo 
+                WHERE user_id = %s 
+                    AND photo_id = p.photo_id
+            )
+        GROUP BY 
+            p.photo_id 
+        ORDER BY 
+            similar_likes DESC
+        '''
+    cursor.execute(query, (user_id, user_id, user_id))
+    result = cursor.fetchall()
+    cursor.close()
+    return result
+
 
 # default page
-
 
 @app.route("/", methods=['GET'])
 def hello():
