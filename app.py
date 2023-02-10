@@ -24,7 +24,7 @@ app.secret_key = 'aleafy'  # Change this!
 
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'Huohx123'              # changed passowrd from 'zhuceyezi'  to mine
+app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'              # change this
 app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
