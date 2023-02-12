@@ -383,6 +383,18 @@ def deleteTag(word):
     conn.commit()
 
 
+@app.route('/deletePhoto', methods=["GET"])
+@flask_login.login_required
+def deletePhoto():
+    photo_id = request.args.get('photo_id')
+    album_id = request.args.get('album_id')
+    album_name = request.args.get('album_name')
+    cursor = conn.cursor()
+    cursor.execute(f"DELETE FROM Photos WHERE photo_id = '{photo_id}'")
+    conn.commit()
+    return render_template("open_album.html", photos=getPhotosFromAlbum(album_id), album_id=album_id, album_name=album_name, message="Photo deleted!", base64=base64)
+
+
 def unassociateTag(word, photo_id):
     cursor = conn.cursor()
     cursor.execute(
@@ -429,10 +441,17 @@ def viewMostPopularTags():
     return tags
 
 
-def searchByTags():
+def searchByTags(str):
     """ search by a list of tags.For example, a visitor could enter the words "friends boston" in an input box, click 
     the search button, and be presented with all photos that contain both the tag "friends" and the tag "boston". """
-    pass
+    tags = str.split(" ")
+    cursor = conn.cursor()
+    lst = []
+    for tag in tags:
+        cursor.commit(
+            "SELECT p.imgdata, p.photo_id, p.caption FROM photos p, (SELECT photo_id, word FROM associate WHERE word = '{tag}') as x WHERE p.photo_id = x.photo_id;")
+        lst += cursor.fetchall()
+    return lst
 
 
 # steven done
@@ -609,7 +628,7 @@ def photoRecommendation(user_id):
 
 
 @app.route('/open_album', methods=["GET"])
-def getPhotosFromAlbum():
+def open_album():
     album_id = request.args.get("album_id")
     cursor = conn.cursor()
     cursor.execute(
@@ -618,7 +637,18 @@ def getPhotosFromAlbum():
     photos = cursor.fetchall()
     cursor.execute(f"SELECT album_name FROM Albums WHERE album_id={album_id}")
     album_name = cursor.fetchone()[0]
-    return render_template('open_album.html', album_name=album_name, photos=photos, base64=base64)
+    return render_template('open_album.html', album_name=album_name, photos=photos, base64=base64, album_id=album_id)
+
+
+def getPhotosFromAlbum(album_id):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT imgdata, photo_id, caption FROM Photos WHERE album_id='{album_id}'")
+    conn.commit()
+    photos = cursor.fetchall()
+    cursor.execute(f"SELECT album_name FROM Albums WHERE album_id={album_id}")
+    return photos
+
 # default page
 
 

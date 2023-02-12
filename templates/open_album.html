@@ -2,6 +2,9 @@
   <title>Album {{album_name}}</title>
 </head>
 <body>
+  {% if message %}
+  <h1>{{message}}</h1>
+  {% endif %}
   <h2>
     <li><a href="/">Go back to home</a></li>
   </h2>
@@ -13,6 +16,10 @@
       <img
         src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}'
       />
+      <a
+        href="/deletePhoto?photo_id={{photo[1]}}&album_id={{album_id}}&album_name={{album_name}}"
+        >Delete this photo</a
+      >
     </li>
     {% endfor %}
   </ul>
