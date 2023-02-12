@@ -304,6 +304,42 @@ def getAllPhotos():
     photos = cursor.fetchall()
     return render_template('gallery.html', photos=photos, base64=base64)
 
+
+def getUsersAlbums(user_id):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT album_id, album_name FROM Albums WHERE user_id = {user_id}")
+    conn.commit()
+    return cursor.fetchall()
+
+
+@app.route('/album_gallery', methods=["GET"])
+def getAllAlbums():
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT a.album_id, a.album_name, a.date_created, COUNT(p.photo_id), a.user_id\
+        FROM Albums a, Photos p WHERE p.album_id=a.album_id\
+        GROUP BY a.album_id\
+        UNION\
+        SELECT a.album_id, a.album_name, a.date_created, 0, a.user_id\
+        FROM Albums a\
+        EXCEPT\
+        SELECT a.album_id, a.album_name, a.date_created, 0, a.user_id\
+        FROM Albums a, Photos p WHERE p.album_id=a.album_id\
+        GROUP BY a.album_id")
+    conn.commit()
+    albums = cursor.fetchall()
+    return render_template('album_gallery.html', albums=albums)
+
+
+def getUserNameFromId(user_id):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT first_name, last_name FROM Users WHERE user_id = {user_id}")
+    conn.commit()
+    return cursor.fetchone()[0]
+
+
 # steven do
 """  The fucntion below is not needed since it already be done at line 130 ~ 146
  def createAlbum():
