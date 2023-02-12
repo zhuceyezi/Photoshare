@@ -2,6 +2,9 @@
   <title>Gallery (all photos on the website)</title>
 </head>
 <body>
+  <h2>
+    <li><a href="/">Go back to home</a></li>
+  </h2>
   <ul>
     {% for photo in photos %}
     <li>
@@ -10,6 +13,9 @@
         src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}'
       />
     </li>
+    <h2>
+      <li><a href="/deletePhoto">Delete this photo</a></li>
+    </h2>
     {% endfor %}
   </ul>
 </body>

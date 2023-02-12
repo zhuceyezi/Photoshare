@@ -229,6 +229,7 @@ def upload_file():
         album_id = request.form.get('album_id')
         imgfile = request.files['photo']
         caption = request.form.get('caption')
+        tags = request.form.get("tags").split(" ")
         # photo_data = base64.standard_b64encode(imgfile.read())
         photo_data = imgfile.read()
         cursor = conn.cursor()
@@ -236,10 +237,18 @@ def upload_file():
         # print(query)
         cursor.execute(query, (user_id, album_id, photo_data, caption))
         conn.commit()
+        if tags[0] != '':
+            cursor.execute(
+                f"SELECT photo_id FROM Photos WHERE user_id = {user_id} AND album_id = {album_id} ORDER BY photo_id DESC LIMIT 1")
+            photo_id = cursor.fetchone()[0]
+            # print(photo_id)
+            for tag in tags:
+                createTagIfNotExist(tag)
+                addTagToPhoto(tag, photo_id)
         return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), base64=base64)
     # The method is GET so we return a  HTML form to upload the a photo.
     else:
-        return render_template('upload.html')
+        return render_template('upload.html', albums=getUsersAlbums(getUserIdFromEmail(flask_login.current_user.id)))
 # end photo uploading code
 
 
@@ -615,7 +624,7 @@ def getPhotosFromAlbum():
 
 @app.route('/view_albums', methods=['GET'])
 @flask_login.login_required
-def getUserAlbums():
+def listAlbums():
     user_id = getCurrentUserId()
     cursor = conn.cursor()
     cursor.execute(
@@ -631,6 +640,14 @@ def getUserAlbums():
     return render_template('view_albums.html', albums=albums)
 
 
+def getUserAlbums(user_id):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT album_id, album_name FROM albums WHERE user_id={user_id}")
+    conn.commit()
+    return cursor.fetchall()
+
+
 @app.route("/", methods=['GET'])
 def hello():
     return render_template('hello.html', message='Welecome to Photoshare')
@@ -639,4 +656,4 @@ def hello():
 if __name__ == "__main__":
     # this is invoked when in the shell  you run
     # $ python app.py
-    app.run(port=5000, debug=True)
+    app.run(port=5000, debug=True, host="0.0.0.0")

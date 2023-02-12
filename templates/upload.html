@@ -3,6 +3,9 @@
   <title>Upload a photo!</title>
 </head>
 <body>
+  <h2>
+    <li><a href="/">Go back to home</a></li>
+  </h2>
   <div class="title">
     <h1>Upload a photo to Photoshare</h1>
   </div>
@@ -16,8 +19,8 @@
       {% for album in albums %}
       <option value="{{album[0]}}">{{album[1]}}</option>
       {% endfor %}
-      </select>
-      <br />
+    </select>
+    <br />
     <label for="tags">If any tags:</label>
     <input type="text" name="tags" /><br />
     <input type="submit" value="Upload" />
