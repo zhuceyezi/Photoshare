@@ -10,8 +10,8 @@
   <ul>
     {% for album in albums %}
     <li>
-      {{album[0]}}:
-      <a href="/open_album?album_id={{album[0]}}">{{album[1]}}</a>, {{album[3]}}
+      Album ID {{album[0]}}:
+      <a href="/open_album?album_id={{album[0]}}&isMyPhoto={{isMyPhoto}}">{{album[1]}}</a>, {{album[3]}}
       photo(s), created on {{album[2]}}, owner: {{album[4]}}
     </li>
     {% endfor %}

@@ -5,14 +5,18 @@
   <h2>
     <li><a href="/">Go back to home</a></li>
   </h2>
+  {% if message %}
+  <h1>{{message}}</h1>
+  {% endif %}
   <h1>Here are your albums!</h1>
   {% if albums %}
   <ul>
     {% for album in albums %}
     <li>
-      {{album[0]}}:
+      Album ID {{album[0]}}:
       <a href="/open_album?album_id={{album[0]}}">{{album[1]}}</a>, {{album[3]}}
       photo(s), created on {{album[2]}}
+      <a href="/delete_album?album_id={{album[0]}}">[delete this album]</a>
     </li>
     {% endfor %}
   </ul>

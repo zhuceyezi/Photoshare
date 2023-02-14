@@ -49,6 +49,10 @@ class User(flask_login.UserMixin):
     pass
 
 
+def isNull(str):
+    return str == ""
+
+
 @login_manager.user_loader
 def user_loader(email):
     users = getUserList()
@@ -252,28 +256,120 @@ def upload_file():
 # end photo uploading code
 
 
-def addFriend(from_user_user_id, to_user_user_id):
-    """ User can add another user as friend
-    The "Friend" here is more like "follow": it is one way instead of mutual """
+def isAFriend(to_user_id):
+    """ Return if the user is a friend of the current user.\n
+    NOTE: also returns true if current user == to_user_id """
+
+    user_id = getCurrentUserId()
     cursor = conn.cursor()
-    query = f'''INSERT INTO be_friend (user_id_from, user_id_to) VALUES ({from_user_user_id}, {to_user_user_id})'''
+    cursor.execute(
+        f"SELECT user_id_to FROM be_friend WHERE user_id_from = '{user_id}' AND user_id_to = '{to_user_id}'")
+    conn.commit()
+    fetchRes = cursor.fetchone()
+    if fetchRes is None and to_user_id != user_id:
+        return False
+    return True
+
+
+def addFriend(from_user_user_id, to_user_user_id):
+    """ 
+    Input: Two user id
+    User can add another user as friend
+    The "Friend" here is more like "follow": it is one way instead of mutual
+    """
+    cursor = conn.cursor()
+    query = f"INSERT INTO be_friend (user_id_from, user_id_to) VALUES ('{from_user_user_id}', '{to_user_user_id}')"
     cursor.execute(query)
     conn.commit()
+
+
+@app.route('/add_friend', methods=['GET', 'POST'])
+@flask_login.login_required
+def route_add_friend():
+    if request.method == 'GET':
+        to_user_id = request.args.get('user_id')
+        user_list = request.args.get('user_list')
+        if user_list is None:
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT user_id, first_name, last_name FROM Users")
+            conn.commit()
+            lst = cursor.fetchall()
+            user_list = []
+            for i in range(len(lst)):
+                user = lst[i]
+                user_list.append((i+1, user[0], user[1], user[2]))
+        if not to_user_id is None:
+            addFriend(getCurrentUserId(), to_user_id)
+        if user_list is None or to_user_id is None:
+            return render_template('add_friends.html', isAFriend=isAFriend,
+                                   user_list=user_list)
+
+        return render_template('add_friends.html', message='Friend Added!', isAFriend=isAFriend,
+                               user_list=getUserInfoFromEmail(request.args.get('email')))
+    else:
+        email = request.form.get('email')
+        friends = getUserInfoFromEmail(email)
+        return render_template('add_friends.html', email=email, isAFriend=isAFriend, user_list=friends)
+
+
+def getUserInfoFromEmail(email):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT user_id, first_name, last_name FROM Users WHERE email = '{email}'")
+    conn.commit()
+    lst = cursor.fetchall()
+    friends = []
+    for i in range(len(lst)):
+        friends.append((i+1, lst[i][0], lst[i][1], lst[i][2]))
+    return friends
+
+
+@app.route('/delete_friend', methods=['GET'])
+@flask_login.login_required
+def deleteFriend():
+    from_user_user_id = getCurrentUserId()
+    # print(from_user_user_id)
+    to_user_user_id = request.args.get('to_user_user_id')
+    # print(to_user_user_id)
+    cursor = conn.cursor()
+    cursor.execute(
+        f"DELETE FROM be_friend WHERE user_id_from='{from_user_user_id}' AND user_id_to='{to_user_user_id}'")
+    conn.commit()
+    friends = listAllFriends(from_user_user_id)
+    # print(friends)
+    return render_template("friends.html", friends=friends, friend_num=len(friends), message="Friend deleted!")
 
 
 def listAllFriends(user_id):
     """ 
     Input: (int) user_id of user.\n
-    Output: a list of tuples (user_id_from, user_id_to)\n
+    Output: a list of tuples (index, user_id, first_name, last_name)\n
     list all friends of an user. 
     """
     cursor = conn.cursor()
-    query = f''' SELECT (user_id_to) FROM be_friend WHERE user_id1 = {user_id} '''
+    query = f"SELECT f.user_id_to as friend_id, u.first_name, u.last_name FROM be_friend f, Users u WHERE u.user_id = f.user_id_to AND f.user_id_from = '{user_id}'"
     cursor.execute(query)
+    conn.commit()
     friends = cursor.fetchall()
-    return friends
+    # print(friends)
+    friend_list = []
+    for i in range(len(friends)):
+        friend = friends[i]
+        friend_list.append((i+1, friend[0], friend[1], friend[2]))
+    return friend_list
 
 # steven done
+
+
+def getUserName(user_id):
+    """ input: (int) user_id of user.\n
+    output: list of str: first name, last name of user.\n
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT first_name, last_name FROM Users WHERE user_id = {user_id}")
+    conn.commit()
+    return cursor.fetchone()
 
 
 def getActivity(user_id):
@@ -338,7 +434,7 @@ def getAllAlbums():
         GROUP BY a.album_id")
     conn.commit()
     albums = cursor.fetchall()
-    return render_template('album_gallery.html', albums=albums)
+    return render_template('album_gallery.html', albums=albums, isMyPhoto=isMyPhoto)
 
 
 def getUserNameFromId(user_id):
@@ -349,11 +445,18 @@ def getUserNameFromId(user_id):
     return cursor.fetchone()[0]
 
 
-# steven do
-"""  The fucntion below is not needed since it already be done at line 130 ~ 146
- def createAlbum():
-    pass
-"""
+@app.route('/delete_album', methods=["GET"])
+@flask_login.login_required
+def route_delete_album():
+    album_id = request.args.get('album_id')
+    deleteAlbum(album_id)
+    return render_template('view_albums.html', message="album deleted!", albums=getUsersAlbums(getCurrentUserId()))
+
+
+def deleteAlbum(album_id):
+    c = conn.cursor()
+    c.execute(f"DELETE FROM Albums WHERE album_id = {album_id}")
+    conn.commit()
 
 
 def createTagIfNotExist(word):
@@ -637,7 +740,8 @@ def open_album():
     photos = cursor.fetchall()
     cursor.execute(f"SELECT album_name FROM Albums WHERE album_id={album_id}")
     album_name = cursor.fetchone()[0]
-    return render_template('open_album.html', album_name=album_name, photos=photos, base64=base64, album_id=album_id)
+    return render_template('open_album.html', album_name=album_name, photos=photos, base64=base64, album_id=album_id, isMyPhoto=isMyPhoto)
+
 
 
 def getPhotosFromAlbum(album_id):
@@ -667,7 +771,7 @@ def listAlbums():
         FROM Albums a, Photos p WHERE p.album_id=a.album_id AND a.user_id={user_id} GROUP BY a.album_id ")
     conn.commit()
     albums = cursor.fetchall()
-    return render_template('view_albums.html', albums=albums)
+    return render_template('view_albums.html', albums=albums, isMyPhoto=isMyPhoto)
 
 
 def getUserAlbums(user_id):
@@ -677,6 +781,24 @@ def getUserAlbums(user_id):
     conn.commit()
     return cursor.fetchall()
 
+
+@app.route("/friends", methods=["GET"])
+@flask_login.login_required
+def friends():
+    user_id = getCurrentUserId()
+    friends = listAllFriends(user_id)
+    return render_template('friends.html', friends=friends, friend_num=len(friends))
+
+def isMyPhoto(photo_id):
+    user_id = getCurrentUserId()
+    c = conn.cursor()
+    c.execute(f"SELECT photo_id FROM Photos WHERE user_id={user_id} AND photo_id={photo_id}")
+    conn.commit()
+    pid = c.fetchone()
+    if pid is None:
+        return False
+    return True
+    
 
 @app.route("/", methods=['GET'])
 def hello():

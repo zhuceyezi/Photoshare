@@ -1,0 +1,17 @@
+<head>
+  <title>Add new friends</title>
+</head>
+<body>
+  <h3>
+    <li><a href="/">Go to home</a></li>
+  </h3>
+  {% if message %}
+  <h3>{{message}}</h3>
+  {% endif %} {% for user in user_list %}
+  <h4>
+    {{user[0]}}: {{user[2]}} {{user[3]}} {% if not isAFriend(user[1]) %}
+    <a href="/add_friend?user_id={{user[1]}}&email={{email}}">Add this user as friend</a>
+    {% endif %}
+  </h4>
+  {% endfor %}
+</body>

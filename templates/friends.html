@@ -1,0 +1,33 @@
+<head>
+  <title>My Friends</title>
+</head>
+<body>
+  {% if message %}
+  <h1>{{message}}</h1>
+  {% endif %}
+  <h1>My Friends:</h1>
+  <h3>
+    <li><a href="/">Go to home</a></li>
+  </h3>
+  <h3>
+    <li><a href="/add_friend">list all users</a></li>
+    or search user by email:
+    <form method="post" enctype="multipart/form-data" action="/add_friend">
+      <label for="email">Please enter email:</label>
+      <input type="text" name="email" required="true" /><br />
+      <br />
+      <input type="submit" value="Search" />
+    </form>
+  </h3>
+
+  You have {{friend_num}} friend(s).
+  <h3>Friend list:</h3>
+  {% for friend in friends%}
+  <h4>
+    {{friend[0]}}: {{friend[2]}} {{friend[3]}}
+    <a href="/delete_friend?to_user_user_id={{friend[1]}}"
+      >[Delete this friend]</a
+    >
+  </h4>
+  {% endfor %}
+</body>
