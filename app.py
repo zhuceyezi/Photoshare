@@ -302,7 +302,7 @@ def route_add_friend():
             addFriend(getCurrentUserId(), to_user_id)
         if user_list is None or to_user_id is None:
             return render_template('add_friends.html', isAFriend=isAFriend,
-                                   user_list=user_list)
+                                   user_list=user_list, email='')
 
         return render_template('add_friends.html', message='Friend Added!', isAFriend=isAFriend,
                                user_list=getUserInfoFromEmail(request.args.get('email')))
@@ -312,16 +312,27 @@ def route_add_friend():
         return render_template('add_friends.html', email=email, isAFriend=isAFriend, user_list=friends)
 
 
-def getUserInfoFromEmail(email):
-    cursor = conn.cursor()
-    cursor.execute(
-        f"SELECT user_id, first_name, last_name FROM Users WHERE email = '{email}'")
-    conn.commit()
-    lst = cursor.fetchall()
-    friends = []
-    for i in range(len(lst)):
-        friends.append((i+1, lst[i][0], lst[i][1], lst[i][2]))
-    return friends
+def getUserInfoFromEmail(email=''):
+    if email == '':
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT user_id, first_name, last_name FROM Users")
+        conn.commit()
+        lst = cursor.fetchall()
+        user_list = []
+        for i in range(len(lst)):
+            user = lst[i]
+            user_list.append((i+1, user[0], user[1], user[2]))
+        return user_list
+    else:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"SELECT user_id, first_name, last_name FROM Users WHERE email = '{email}'")
+        conn.commit()
+        lst = cursor.fetchall()
+        friends = []
+        for i in range(len(lst)):
+            friends.append((i+1, lst[i][0], lst[i][1], lst[i][2]))
+        return friends
 
 
 @app.route('/delete_friend', methods=['GET'])
@@ -743,7 +754,6 @@ def open_album():
     return render_template('open_album.html', album_name=album_name, photos=photos, base64=base64, album_id=album_id, isMyPhoto=isMyPhoto)
 
 
-
 def getPhotosFromAlbum(album_id):
     cursor = conn.cursor()
     cursor.execute(
@@ -789,16 +799,18 @@ def friends():
     friends = listAllFriends(user_id)
     return render_template('friends.html', friends=friends, friend_num=len(friends))
 
+
 def isMyPhoto(photo_id):
     user_id = getCurrentUserId()
     c = conn.cursor()
-    c.execute(f"SELECT photo_id FROM Photos WHERE user_id={user_id} AND photo_id={photo_id}")
+    c.execute(
+        f"SELECT photo_id FROM Photos WHERE user_id={user_id} AND photo_id={photo_id}")
     conn.commit()
     pid = c.fetchone()
     if pid is None:
         return False
     return True
-    
+
 
 @app.route("/", methods=['GET'])
 def hello():
