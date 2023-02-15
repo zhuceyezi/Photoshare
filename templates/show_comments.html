@@ -1,0 +1,31 @@
+<head>
+  <title>Comments</title>
+</head>
+<body>
+  <li>
+    <img
+      src='data:image/jpg;base64, {{base64.b64encode(photo).decode("ascii")}}'
+    />
+  </li>
+  {% for comment in comments %}
+  <div class="comment">
+    ——————————————————————————————————————————————————————————————————————————
+  </br>
+    {{comment[0]}} {{comment[1]}}, {% if not comment[2] == None%}{{comment[2]}}{% endif %} on {{comment[4]}} said:
+</br>
+    ---------------------------------------------------
+    <h3>{{comment[3]}}</h3>
+    ——————————————————————————————————————————————————————————————————————————
+  </br>
+  </div>
+  {% endfor %}
+  {% if isMyPhoto(photo_id) %}
+  <h2>You cannot comment on your own photo!</h2>
+  {% else %}
+  <form method="post" enctype="multipart/form-data" action="/leave_comment?photo_id={{photo_id}}">
+    <label for="content">Leave your comments!</label>
+    <input type="text" name="content" required="true" /><br />
+    <input type="submit" value="Submit" />
+  </form>
+  {% endif %}
+</body>

@@ -13,6 +13,17 @@
         src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}'
       />
     </li>
+    <a href="/comments?photo_id={{photo[1]}}"> [Comments] </a>
+    {% if user_id != -1 and user_id != getOwnerId(photo[1]) and notLiked(user_id,photo[1]) %}
+    <a href="/like?photo_id={{photo[1]}}&src=gallery"> [Like this Photo]</a>
+    {% endif %}
+    {% if not notLiked(user_id,photo[1]) %}
+    <a href="/unlike?photo_id={{photo[1]}}&src=gallery">[Unlike]</a>
+    {% endif %}
+  </br>
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+</br>
+    </li>
     {% endfor %}
   </ul>
 </body>

@@ -16,22 +16,13 @@
       <img
         src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}'
       />
-      {% if isMyPhoto(photo[1])%}
       <a
         href="/deletePhoto?photo_id={{photo[1]}}&album_id={{album_id}}&album_name={{album_name}}"
       >
         [Delete this photo]
       </a>
-      {%endif%}
     </li>
     <a href="/comments?photo_id={{photo[1]}}"> [Comments] </a>
-    {% if user_id != -1 and user_id != getOwnerId(photo[1]) and
-    notLiked(user_id,photo[1]) %}
-    <a href="/like?album_id={{album_id}}&src=open_album&photo_id={{photo[1]}}">
-      [Like this Photo]</a
-    >
-    {% endif %} {% if not notLiked(user_id,photo[1]) %}
-    <a href="/unlike?photo_id={{photo[1]}}&src=open_album&album_id={{album_id}}">[Unlike]</a>
-    {% endif %} {% endfor %}
+    {% endfor %}
   </ul>
 </body>
