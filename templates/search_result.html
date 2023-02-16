@@ -1,0 +1,11 @@
+<head>
+  <title>Search Result</title>
+</head>
+<body>
+  <h1><a href="/">Go to home</a></h1>
+  {% for result in results %}
+  <h2>
+    {{result[0]}} {{result[1]}} [{{result[2]}}], matched {{result[4]}} results.
+  </h2>
+  {% endfor %}
+</body>

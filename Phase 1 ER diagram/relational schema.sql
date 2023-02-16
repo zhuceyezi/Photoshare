@@ -94,4 +94,7 @@ INSERT INTO Tags (word) VALUES ("test_tag");
 INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (1,30,"Nice Finger!","2023-02-15");
 INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (2,30,"I Hate you","2023-02-15");
 INSERT INTO Users (user_id,first_name, last_name) VALUES (-1, "Anonymous", "Visitor");
-    
+
+
+SELECT u.first_name, u.last_name, u.email, u.user_id, COUNT(*) FROM Comments c NATURAL JOIN Users u 
+WHERE c.content = 'test' GROUP BY u.user_id ORDER BY COUNT(*) DESC

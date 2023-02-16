@@ -426,7 +426,7 @@ def getAllPhotos():
     cursor.execute(f"SELECT imgdata, photo_id, caption FROM Photos")
     conn.commit()
     photos = cursor.fetchall()
-    return render_template('gallery.html', notLiked=notLiked,getOwnerId=getOwnerId, user_id=getCurrentUserId(), photos=photos, base64=base64, isMyPhoto=isMyPhoto)
+    return render_template('gallery.html', notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), photos=photos, base64=base64, isMyPhoto=isMyPhoto)
 
 
 def getUsersAlbums(user_id):
@@ -597,12 +597,29 @@ def getCommentsFromPhoto(photo_id):
     """
     c = conn.cursor()
     cursor.execute(
-        f"SELECT u.first_name, u.last_name, u.email, c.content, c.date_comment FROM Comments c NATURAL JOIN Users u WHERE photo_id = '{photo_id}'")
+        f"SELECT u.first_name, u.last_name, u.email, c.content, c.date_comment FROM Comments c NATURAL JOIN Users u WHERE photo_id = '{photo_id}' ORDER BY date_comment DESC")
+
     conn.commit()
     comments = cursor.fetchall()
     return comments
 
 # steven done
+
+
+@app.route("/search_comment", methods=["POST"])
+def search_comment():
+    str = request.form.get('str')
+    c = conn.cursor()
+    c.execute(
+        f"SELECT u.first_name, u.last_name, u.email, u.user_id, COUNT(*) as count FROM Comments c NATURAL JOIN Users u WHERE c.content = '{str}' GROUP BY u.user_id ORDER BY COUNT(*) DESC")
+    conn.commit()
+    results = c.fetchall()
+    return render_template("search_result.html", results=results)
+
+
+@app.route("/search", methods=["GET"])
+def search():
+    return render_template("search.html")
 
 
 @app.route('/leave_comment', methods=["POST"])
@@ -624,7 +641,7 @@ def leaveComment():
     cursor.execute(insert)
     conn.commit()  # commit changes made to the database
     cursor.close()
-    return redirect(url_for('/comments', photo_id=photo_id))
+    return redirect(url_for('show_comments', photo_id=photo_id))
 
 
 def getOwnerId(photo_id):
@@ -661,6 +678,7 @@ def likePhoto():
     elif src == 'gallery':
         return redirect(url_for('getAllPhotos'))
 
+
 @app.route('/unlike', methods=['GET'])
 @flask_login.login_required
 def unlikePhoto():
@@ -670,7 +688,8 @@ def unlikePhoto():
     if src == 'open_album':
         album_id = request.args.get('album_id')
     c = conn.cursor()
-    c.execute(f"DELETE FROM user_like_photo WHERE user_id = '{user_id}' AND photo_id = '{photo_id}'")
+    c.execute(
+        f"DELETE FROM user_like_photo WHERE user_id = '{user_id}' AND photo_id = '{photo_id}'")
     conn.commit()
     if src == 'open_album':
         return redirect(url_for('open_album', album_id=album_id))
@@ -678,6 +697,8 @@ def unlikePhoto():
         return redirect(url_for('getAllPhotos'))
 
 # steven done
+
+
 def searchUsersOnComment(query_text):
     """
     Input: (str) query_text, the text to search for in user comments.
@@ -796,7 +817,7 @@ def open_album():
     photos = cursor.fetchall()
     cursor.execute(f"SELECT album_name FROM Albums WHERE album_id={album_id}")
     album_name = cursor.fetchone()[0]
-    return render_template('open_album.html', notLiked=notLiked,getOwnerId=getOwnerId, user_id=getCurrentUserId(), album_name=album_name, photos=photos, base64=base64, album_id=album_id, isMyPhoto=isMyPhoto)
+    return render_template('open_album.html', notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), album_name=album_name, photos=photos, base64=base64, album_id=album_id, isMyPhoto=isMyPhoto)
 
 
 def getPhotosFromAlbum(album_id):
@@ -809,15 +830,19 @@ def getPhotosFromAlbum(album_id):
     return photos
 
 # default page
-def notLiked(user_id,photo_id):
+
+
+def notLiked(user_id, photo_id):
     c = conn.cursor()
-    c.execute(f"SELECT user_id, photo_id FROM user_like_photo WHERE user_id = {user_id} AND photo_id = {photo_id}")
+    c.execute(
+        f"SELECT user_id, photo_id FROM user_like_photo WHERE user_id = {user_id} AND photo_id = {photo_id}")
     conn.commit()
     result = c.fetchone()
     if result is None:
         return True
     else:
         return False
+
 
 @app.route('/view_albums', methods=['GET'])
 @flask_login.login_required
