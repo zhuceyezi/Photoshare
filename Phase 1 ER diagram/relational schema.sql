@@ -15,7 +15,7 @@ CREATE TABLE Users ( -- capitalized entitys for notations
 	first_name VARCHAR(20),
 	last_name VARCHAR(20),
     email VARCHAR(30) UNIQUE,
-    job VARCHAR(255),
+    dob DATE,
     hometown VARCHAR(20),
     gender VARCHAR(20),
     password VARCHAR(255),

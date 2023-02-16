@@ -14,8 +14,8 @@
     <input type="file" name="photo" required="true" /><br />
     <label for="caption">Please caption:</label>
     <input type="text" name="caption" required="true" /><br />
-    <label for="album">Select an album:</label>
-    <select name="album_id" id="album_id">
+    <label for="album">Select an album (Please create an album if you don't have one):</label>
+    <select name="album_id" id="album_id" required="true">
       {% for album in albums %}
       <option value="{{album[0]}}">{{album[1]}}</option>
       {% endfor %}

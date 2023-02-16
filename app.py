@@ -165,6 +165,11 @@ def register_user():
     try:
         email = request.form.get('email')
         password = request.form.get('password')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        dob = request.form.get('dob')
+        hometown = request.form.get('hometown')
+        gender = request.form.get('gender')
     except:
         # this prints to shell, end users will not see this (all print statements go to shell)
         print("couldn't find all tokens")
@@ -173,7 +178,7 @@ def register_user():
     test = isEmailUnique(email)
     if test:
         print(cursor.execute(
-            "INSERT INTO Users (email, password) VALUES ('{0}', '{1}')".format(email, password)))
+            f"INSERT INTO Users (first_name, last_name, email, dob, hometown, gender, password) VALUES ('{first_name}', '{last_name}','{email}', '{dob}', '{hometown}', '{gender}', '{password}')"))
         conn.commit()
         # log user in
         user = User()
@@ -579,7 +584,6 @@ def searchByTags(str):
 @app.route("/comments", methods=["GET"])
 def show_comments():
     photo_id = request.args.get('photo_id')
-    print(photo_id)
     c = conn.cursor()
     c.execute(
         f"SELECT imgdata, photo_id FROM Photos WHERE photo_id = '{photo_id}'")
@@ -888,6 +892,29 @@ def isMyPhoto(photo_id):
     if pid is None:
         return False
     return True
+
+
+@app.route('/top_users', methods=['GET'])
+def top_users():
+    c = conn.cursor()
+    c.execute(f"SELECT user_id FROM Users WHERE user_id <> -1")
+    conn.commit()
+    users = c.fetchall()
+    rank = []
+    for user in users:
+        uid = user[0]
+        contribution = getActivity(uid)
+        rank.append((contribution, uid))
+    rank.sort(reverse=True)
+    topten = []
+    for user in rank[:10]:
+        contribution, uid = user
+        c.execute(
+            f"select first_name, last_name, email, {contribution}  from Users where user_id = {uid}")
+        conn.commit()
+        result = c.fetchone()
+        topten.append(result)
+    return render_template('top_users.html', topten=topten)
 
 
 @app.route("/", methods=['GET'])

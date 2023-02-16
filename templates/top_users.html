@@ -1,0 +1,9 @@
+<head>
+  <title>Top Users</title>
+</head>
+<body>
+  <h1><a href="/">Go to home</a></h1>
+  {% for user in topten %}
+  <h2>{{user[0]}} {{user[1]}} [{{user[2]}}], {{user[3]}} contribution.</h2>
+  {% endfor %}
+</body>
