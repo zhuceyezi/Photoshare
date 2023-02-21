@@ -18,7 +18,7 @@ CREATE TABLE Users ( -- capitalized entitys for notations
     dob DATE,
     hometown VARCHAR(20),
     gender VARCHAR(20),
-    password VARCHAR(255),
+    password VARCHAR(255) NOT NULL,
     CONSTRAINT users_pk PRIMARY KEY (user_id)
 );
 
@@ -94,7 +94,28 @@ INSERT INTO Tags (word) VALUES ("test_tag");
 INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (1,30,"Nice Finger!","2023-02-15");
 INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (2,30,"I Hate you","2023-02-15");
 INSERT INTO Users (user_id,first_name, last_name) VALUES (-1, "Anonymous", "Visitor");
-
+INSERT INTO be_friend (user_id_from,user_id_to) VALUES (2,1);
+INSERT INTO be_friend (user_id_from,user_id_to) VALUES (3,1);
+INSERT INTO be_friend (user_id_from,user_id_to) VALUES (3,2);
 
 SELECT u.first_name, u.last_name, u.email, u.user_id, COUNT(*) FROM Comments c NATURAL JOIN Users u 
-WHERE c.content = 'test' GROUP BY u.user_id ORDER BY COUNT(*) DESC
+WHERE c.content = 'test' GROUP BY u.user_id ORDER BY COUNT(*) DESC;
+
+ALTER TABLE Users ADD COLUMN dob DATE;
+
+
+WITH cp(cp,uid) AS (
+SELECT COUNT(p.user_id), u.user_id FROM Photos p, Users u WHERE p.user_id = u.user_id GROUP BY u.user_id
+UNION
+SELECT 0, u.user_id FROM Users u
+),
+cc(cc,uid) AS (
+SELECT COUNT(c.user_id)+0, u.user_id FROM Comments c, Users u WHERE c.user_id = u.user_id GROUP BY u.user_id
+)
+SELECT (cc.cc+cp.cp) as Activity, cc.uid FROM cc LEFT OUTER JOIN cp ON cc.uid = cp.uid
+UNION
+SELECT (cc.cc+cp.cp) as Activity, cc.uid FROM cc RIGHT OUTER JOIN cp ON cc.uid = cp.uid;
+
+
+With f(user_id) as (SELECT u.user_id from be_friend b JOIN users u ON b.user_id_to = u.user_id WHERE b.user_id_from = 1)
+(SELECT u.user_id, u.first_name,u.last_name,u.email from be_friend b JOIN users u ON b.user_id_to = u.user_id);

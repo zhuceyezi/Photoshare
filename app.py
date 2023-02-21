@@ -157,7 +157,10 @@ def create_album():
 
 @app.route("/register", methods=['GET'])
 def register():
-    return render_template('register.html', supress='True')
+    inUse = request.args.get('inUse')
+    if inUse == None:
+        inUse = False
+    return render_template('register.html', inUse=inUse)
 
 
 @app.route("/register", methods=['POST'])
@@ -187,7 +190,7 @@ def register_user():
         return render_template('hello.html', name=email, message='Account Created!')
     else:
         print("couldn't find all tokens")
-        return flask.redirect(flask.url_for('register'))
+        return flask.redirect(flask.url_for('register', inUse=True))
 
 
 def getUsersPhotos(user_id):
@@ -743,7 +746,7 @@ def friendRecommendation(user_id):
     cursor = conn.cursor()
     query = '''
         SELECT 
-            u.user_id, u.first_name, u.last_name,
+            u.user_id, u.first_name, u.last_name, u.email
             COUNT(DISTINCT bf2.user_id_from) AS mutual_friends 
         FROM 
             Users u 
@@ -904,7 +907,8 @@ def top_users():
     for user in users:
         uid = user[0]
         contribution = getActivity(uid)
-        rank.append((contribution, uid))
+        if contribution != None:
+            rank.append((contribution, uid))
     rank.sort(reverse=True)
     topten = []
     for user in rank[:10]:
@@ -915,6 +919,56 @@ def top_users():
         result = c.fetchone()
         topten.append(result)
     return render_template('top_users.html', topten=topten)
+
+
+@app.route("/friend_recommendation", methods=["GET"])
+@flask_login.login_required
+def friend_recommendation():
+    user_id = getCurrentUserId()
+    fof = friends_of_friends(user_id)
+    # fof = friendRecommendation(user_id)
+    return render_template('friend_recommendation.html', friends=fof)
+
+
+@app.route("/add_friend_friend_recommendation", methods=["GET"])
+@flask_login.login_required
+def add_friend_friend_recommendation():
+    user_id = getCurrentUserId()
+    to_user_id = request.args.get('to_user_id')
+    addFriend(user_id, to_user_id)
+    return redirect(url_for('friend_recommendation'))
+
+
+def friends_of_friends(user_id):
+    c = conn.cursor()
+    # Get all friend ids
+    c.execute(
+        f"SELECT u.user_id from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = '{user_id}'")
+    conn.commit()
+    friends = c.fetchall()
+    friends_of_friends = {}
+    for friend in friends:
+        friend_id = friend[0]
+        c.execute(
+            f"SELECT u.user_id, u.first_name, u.last_name, u.email from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = '{friend_id}'")
+        conn.commit()
+        lst = c.fetchall()
+        for item in lst:
+            if isAFriend(item[0]):
+                continue
+            else:
+                if friends_of_friends.get(item[0]) == None:
+                    friends_of_friends[item[0]] = [1, item]
+                else:
+                    cur = friends_of_friends.get(item[0])
+                    friends_of_friends[item[0]] = [cur[0]+1, item]
+    result = [v for v in friends_of_friends.values()]
+    result.sort(reverse=True)
+    # print(result)
+    # for i in range(len(result)):
+    #     cur = result[i]
+    #     result[i] = cur[1]
+    return result
 
 
 @app.route("/", methods=['GET'])
