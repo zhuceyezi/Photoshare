@@ -46,6 +46,7 @@ def getTags(photo_id):
     result = [x[0] for x in c.fetchall()]
     return result
 
+
 def getUserList():
     cursor = conn.cursor()
     cursor.execute("SELECT email from Users")
@@ -311,28 +312,42 @@ def addFriend(from_user_user_id, to_user_user_id):
 def route_add_friend():
     if request.method == 'GET':
         to_user_id = request.args.get('user_id')
-        user_list = request.args.get('user_list')
-        if user_list is None:
-            cursor = conn.cursor()
-            cursor.execute(f"SELECT user_id, first_name, last_name FROM Users")
-            conn.commit()
-            lst = cursor.fetchall()
-            user_list = []
-            for i in range(len(lst)):
-                user = lst[i]
+        add = request.args.get('add')
+        src = request.args.get('src')
+
+        user_list = []
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT user_id, first_name, last_name FROM Users")
+        conn.commit()
+        lst = cursor.fetchall()
+        user_list = []
+        for i in range(len(lst)):
+            user = lst[i]
+            if user[0] != -1:
                 user_list.append((i+1, user[0], user[1], user[2]))
         if not to_user_id is None:
             addFriend(getCurrentUserId(), to_user_id)
-        if user_list is None or to_user_id is None:
+            if src == 'email':
+                print("hi")
+                return redirect(url_for('friends', message="Friend added!"))
+        if to_user_id is None:
             return render_template('add_friends.html', isAFriend=isAFriend,
-                                   user_list=user_list, email='')
+                                   user_list=user_list, email='', add=add)
 
-        return render_template('add_friends.html', message='Friend Added!', isAFriend=isAFriend,
-                               user_list=getUserInfoFromEmail(request.args.get('email')))
+        return redirect(url_for('route_add_friend', add=True))
     else:
         email = request.form.get('email')
         friends = getUserInfoFromEmail(email)
-        return render_template('add_friends.html', email=email, isAFriend=isAFriend, user_list=friends)
+        return redirect(url_for('route_add_friend'))
+
+
+@app.route('/add_friend_by_email', methods=['POST'])
+@flask_login.login_required
+def add_friend_by_email():
+    email = request.form.get('email')
+    friends = getUserInfoFromEmail(email)
+    return render_template('add_friends.html', isAFriend=isAFriend,
+                            user_list=friends, email='', src='email')
 
 
 def getUserInfoFromEmail(email=''):
@@ -441,7 +456,7 @@ def getAllPhotos():
     cursor.execute(f"SELECT imgdata, photo_id, caption FROM Photos")
     conn.commit()
     photos = cursor.fetchall()
-    return render_template('gallery.html', getTags=getTags,notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), photos=photos, base64=base64, isMyPhoto=isMyPhoto)
+    return render_template('gallery.html', getTags=getTags, notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), photos=photos, base64=base64, isMyPhoto=isMyPhoto)
 
 
 def getUsersAlbums(user_id):
@@ -887,9 +902,13 @@ def getUserAlbums(user_id):
 @app.route("/friends", methods=["GET"])
 @flask_login.login_required
 def friends():
+    print("There!")
     user_id = getCurrentUserId()
     friends = listAllFriends(user_id)
-    return render_template('friends.html', friends=friends, friend_num=len(friends))
+    message = request.args.get('message')
+    if message == None:
+        message = ''
+    return render_template('friends.html', friends=friends, friend_num=len(friends),message=message)
 
 
 def isMyPhoto(photo_id):
@@ -914,7 +933,7 @@ def top_users():
         SELECT COUNT(c.user_id), u.user_id FROM Comments c, Users u WHERE c.user_id=u.user_id GROUP BY u.user_id\
     ),\
         result(sum, uid) as (\
-        SELECT(IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp RIGHT OUTER JOIN cc ON cc.uid=cp.uid\
+        SELECT(IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cc.uid FROM cp RIGHT OUTER JOIN cc ON cc.uid=cp.uid\
         UNION\
         SELECT(IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp LEFT OUTER JOIN cc ON cc.uid=cp.uid\
     )\
@@ -1010,16 +1029,13 @@ def photo_recommendation():
     return render_template('open_album.html', photos=photos, base64=base64, isMyPhoto=isMyPhoto, getOwnerId=getOwnerId, user_id=getCurrentUserId(), notLiked=notLiked, getTags=getTags)
 
 
-
-
-
 def photoRecommendation(user_id):
     # first get the three most common tags of the user's photos
     matchScore = 1000000
     unmatchCost = 1
     c = conn.cursor()
     c.execute(f"SELECT COUNT(a.word) as count, a.word from\
-        users u NATURAL JOIN photos p NATURAL JOIN associate a WHERE u.user_id = 1 GROUP BY a.word ORDER BY count DESC LIMIT 3")
+        users u NATURAL JOIN photos p NATURAL JOIN associate a WHERE u.user_id = {user_id} GROUP BY a.word ORDER BY count DESC LIMIT 3")
     conn.commit()
     fav3 = [x[1] for x in c.fetchall()]  # favorite 3 tags
     print(fav3)
