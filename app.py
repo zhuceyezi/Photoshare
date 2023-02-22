@@ -347,7 +347,7 @@ def add_friend_by_email():
     email = request.form.get('email')
     friends = getUserInfoFromEmail(email)
     return render_template('add_friends.html', isAFriend=isAFriend,
-                            user_list=friends, email='', src='email')
+                           user_list=friends, email='', src='email')
 
 
 def getUserInfoFromEmail(email=''):
@@ -457,6 +457,13 @@ def getAllPhotos():
     conn.commit()
     photos = cursor.fetchall()
     return render_template('gallery.html', getTags=getTags, notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), photos=photos, base64=base64, isMyPhoto=isMyPhoto)
+
+
+def getAlbumId(photo_id):
+    c = conn.cursor()
+    c.execute(f"SELECT album_id FROM Photos WHERE photo_id = '{photo_id}'")
+    conn.commit()
+    return c.fetchone()[0]
 
 
 def getUsersAlbums(user_id):
@@ -706,6 +713,8 @@ def likePhoto():
         return redirect(url_for('open_album', album_id=album_id))
     elif src == 'gallery':
         return redirect(url_for('getAllPhotos'))
+    elif src == 'photo_recommendation':
+        return redirect(url_for('photo_recommendation'))
 
 
 @app.route('/unlike', methods=['GET'])
@@ -724,6 +733,8 @@ def unlikePhoto():
         return redirect(url_for('open_album', album_id=album_id))
     elif src == 'gallery':
         return redirect(url_for('getAllPhotos'))
+    elif src == 'photo_recommendation':
+        return redirect(url_for('photo_recommendation'))
 
 # steven done
 
@@ -839,12 +850,15 @@ def photoRecommendation(user_id):
 @app.route('/open_album', methods=["GET"])
 def open_album():
     album_id = request.args.get("album_id")
+    print("----")
+    print(album_id)
     cursor = conn.cursor()
     cursor.execute(
         f"SELECT imgdata, photo_id, caption FROM Photos WHERE album_id='{album_id}'")
     conn.commit()
     photos = cursor.fetchall()
-    cursor.execute(f"SELECT album_name FROM Albums WHERE album_id={album_id}")
+    cursor.execute(
+        f"SELECT album_name FROM Albums WHERE album_id='{album_id}'")
     album_name = cursor.fetchone()[0]
     return render_template('open_album.html', getTags=getTags, notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), album_name=album_name, photos=photos, base64=base64, album_id=album_id, isMyPhoto=isMyPhoto)
 
@@ -908,7 +922,7 @@ def friends():
     message = request.args.get('message')
     if message == None:
         message = ''
-    return render_template('friends.html', friends=friends, friend_num=len(friends),message=message)
+    return render_template('friends.html', friends=friends, friend_num=len(friends), message=message)
 
 
 def isMyPhoto(photo_id):
@@ -994,31 +1008,43 @@ def add_friend_friend_recommendation():
 
 def friends_of_friends(user_id):
     c = conn.cursor()
-    # Get all friend ids
-    c.execute(
-        f"SELECT u.user_id from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = '{user_id}'")
+    c.execute(f"With f(user_id) as (SELECT u.user_id from be_friend b JOIN users u ON b.user_id_to=u.user_id WHERE b.user_id_from='{user_id}'),\
+              tmp(count, user_id) as (SELECT Count(b.user_id_to), b.user_id_to FROM f JOIN be_friend b on b.user_id_from=f.user_id GROUP BY b.user_id_to)\
+              (SELECT tmp.count, u.user_id, u.first_name, u.last_name, u.email FROM tmp JOIN users u ON u.user_id=tmp.user_id)\
+              ")
     conn.commit()
-    friends = c.fetchall()
-    friends_of_friends = {}
+    friends = list(c.fetchall())
     for friend in friends:
-        friend_id = friend[0]
-        # get the friends of the friend
-        c.execute(
-            f"SELECT u.user_id, u.first_name, u.last_name, u.email from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = '{friend_id}'")
-        conn.commit()
-        lst = c.fetchall()
-        for item in lst:
-            if isAFriend(item[0]):
-                continue
-            else:
-                if friends_of_friends.get(item[0]) == None:
-                    friends_of_friends[item[0]] = [1, item]
-                else:
-                    cur = friends_of_friends.get(item[0])
-                    friends_of_friends[item[0]] = [cur[0]+1, item]
-    result = [v for v in friends_of_friends.values()]
-    result.sort(reverse=True)
-    return result
+        if isAFriend(friend[1]):
+            friends.remove(friend)
+    print(friends)
+    return friends
+    # c = conn.cursor()
+    # # Get all friend ids
+    # c.execute(
+    #     f"SELECT u.user_id from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = '{user_id}'")
+    # conn.commit()
+    # friends = c.fetchall()
+    # friends_of_friends = {}
+    # for friend in friends:
+    #     friend_id = friend[0]
+    #     # get the friends of the friend
+    #     c.execute(
+    #         f"SELECT u.user_id, u.first_name, u.last_name, u.email from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = '{friend_id}'")
+    #     conn.commit()
+    #     lst = c.fetchall()
+    #     for item in lst:
+    #         if isAFriend(item[0]):
+    #             continue
+    #         else:
+    #             if friends_of_friends.get(item[0]) == None:
+    #                 friends_of_friends[item[0]] = [1, item]
+    #             else:
+    #                 cur = friends_of_friends.get(item[0])
+    #                 friends_of_friends[item[0]] = [cur[0]+1, item]
+    # result = [v for v in friends_of_friends.values()]
+    # result.sort(reverse=True)
+    # return result
 
 
 @app.route('/photo_recommendation', methods=['GET'])
@@ -1026,7 +1052,7 @@ def friends_of_friends(user_id):
 def photo_recommendation():
     user_id = getCurrentUserId()
     photos = photoRecommendation(user_id)
-    return render_template('open_album.html', photos=photos, base64=base64, isMyPhoto=isMyPhoto, getOwnerId=getOwnerId, user_id=getCurrentUserId(), notLiked=notLiked, getTags=getTags)
+    return render_template('photo_recommendation.html', photos=photos, base64=base64, isMyPhoto=isMyPhoto, getOwnerId=getOwnerId, user_id=getCurrentUserId(), notLiked=notLiked, getTags=getTags)
 
 
 def photoRecommendation(user_id):

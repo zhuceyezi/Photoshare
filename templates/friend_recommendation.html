@@ -9,9 +9,8 @@
   {% for friend in friends%}
   <h3>
     <!-- don't touch this is a mess
-    friend[0] : friend user_id
-    friend[1] : score, first_name, last_name, email -->
-    {{friend[1][1]}} {{friend[1][2]}}, {{friend[1][3]}}, number of common friends: {{friend[0]}} 
+    friend : score, user_id, first_name, last_name, email -->
+    {{friend[2]}} {{friend[3]}}, {{friend[4]}}, number of common friends: {{friend[0]}} 
     <a href="/add_friend_friend_recommendation?to_user_id={{friend[0]}}"
       >Add this user as friend</a
     >
