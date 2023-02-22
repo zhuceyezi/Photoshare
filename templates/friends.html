@@ -22,8 +22,8 @@
 
   You have {{friend_num}} friend(s).
   <h3>Friend list:</h3>
+  <!-- friend: counter(ignore) friend_id, first_name, last_name -->
   {% for friend in friends%}
-  <!-- friend: -->
   <h4>
     {{friend[0]}}: {{friend[2]}} {{friend[3]}}
     <a href="/delete_friend?to_user_user_id={{friend[1]}}"
