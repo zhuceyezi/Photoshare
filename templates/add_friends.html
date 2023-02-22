@@ -8,6 +8,7 @@
   {% if add %}
   <h3>Friend Added!</h3>
   {% endif %} {% for user in user_list %}
+  <!-- user: counter, user_id, first_name, last_name -->
   <h4>
     {{user[2]}} {{user[3]}} {% if not isAFriend(user[1]) %}
     <a href="/add_friend?user_id={{user[1]}}&email={{email}}&src={{src}}"

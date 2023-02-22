@@ -9,6 +9,7 @@
   {% if albums %}
   <ul>
     {% for album in albums %}
+    <!-- album: album_id, caption, date of creation, number of photos, owner  -->
     <li>
       Album ID {{album[0]}}:
       <a href="/open_album?album_id={{album[0]}}&isMyPhoto={{isMyPhoto}}">{{album[1]}}</a>, {{album[3]}}

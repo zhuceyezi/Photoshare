@@ -4,6 +4,7 @@
 <body>
   <h1><a href="/">Go to home</a></h1>
   {% for result in results %}
+  <!-- result: first_name, last_name, email, user_id, number of matches -->
   <h2>
     {{result[0]}} {{result[1]}} [{{result[2]}}], matched {{result[4]}} results.
   </h2>

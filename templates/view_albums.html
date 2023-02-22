@@ -12,6 +12,7 @@
   {% if albums %}
   <ul>
     {% for album in albums %}
+    <!-- alubm: album_id, album_name, date_created, count of photos -->
     <li>
       Album ID {{album[0]}}:
       <a href="/open_album?album_id={{album[0]}}">{{album[1]}}</a>, {{album[3]}}
