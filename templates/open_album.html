@@ -31,7 +31,16 @@
       [Like this Photo]</a
     >
     {% endif %} {% if not notLiked(user_id,photo[1]) %}
-    <a href="/unlike?photo_id={{photo[1]}}&src=open_album&album_id={{album_id}}">[Unlike]</a>
-    {% endif %} {% endfor %}
+    <a href="/unlike?photo_id={{photo[1]}}&src=open_album&album_id={{album_id}}"
+      >[Unlike]</a
+    >
+    {% endif %}
+    <a href="/like_data?photo_id={{photo[1]}}">[Like data]</a>
+    <br />
+    tags: {{getTags(photo[1])}}
+    </br>
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+</br>
+     {% endfor %}
   </ul>
 </body>

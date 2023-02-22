@@ -39,6 +39,13 @@ cursor.execute("SELECT email from Users")
 users = cursor.fetchall()
 
 
+def getTags(photo_id):
+    c = conn.cursor()
+    c.execute(f"SELECT word FROM associate WHERE photo_id = '{photo_id}'")
+    conn.commit()
+    result = [x[0] for x in c.fetchall()]
+    return result
+
 def getUserList():
     cursor = conn.cursor()
     cursor.execute("SELECT email from Users")
@@ -434,7 +441,7 @@ def getAllPhotos():
     cursor.execute(f"SELECT imgdata, photo_id, caption FROM Photos")
     conn.commit()
     photos = cursor.fetchall()
-    return render_template('gallery.html', notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), photos=photos, base64=base64, isMyPhoto=isMyPhoto)
+    return render_template('gallery.html', getTags=getTags,notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), photos=photos, base64=base64, isMyPhoto=isMyPhoto)
 
 
 def getUsersAlbums(user_id):
@@ -824,7 +831,7 @@ def open_album():
     photos = cursor.fetchall()
     cursor.execute(f"SELECT album_name FROM Albums WHERE album_id={album_id}")
     album_name = cursor.fetchone()[0]
-    return render_template('open_album.html', notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), album_name=album_name, photos=photos, base64=base64, album_id=album_id, isMyPhoto=isMyPhoto)
+    return render_template('open_album.html', getTags=getTags, notLiked=notLiked, getOwnerId=getOwnerId, user_id=getCurrentUserId(), album_name=album_name, photos=photos, base64=base64, album_id=album_id, isMyPhoto=isMyPhoto)
 
 
 def getPhotosFromAlbum(album_id):
@@ -842,7 +849,7 @@ def getPhotosFromAlbum(album_id):
 def notLiked(user_id, photo_id):
     c = conn.cursor()
     c.execute(
-        f"SELECT user_id, photo_id FROM user_like_photo WHERE user_id = {user_id} AND photo_id = {photo_id}")
+        f"SELECT user_id, photo_id FROM user_like_photo WHERE user_id = '{user_id}' AND photo_id = '{photo_id}'")
     conn.commit()
     result = c.fetchone()
     if result is None:
@@ -900,25 +907,52 @@ def isMyPhoto(photo_id):
 @app.route('/top_users', methods=['GET'])
 def top_users():
     c = conn.cursor()
-    c.execute(f"SELECT user_id FROM Users WHERE user_id <> -1")
+    c.execute(f"WITH cp(cp, uid) AS(\
+        SELECT COUNT(p.user_id), u.user_id FROM Photos p, Users u WHERE p.user_id=u.user_id GROUP BY u.user_id\
+    ),\
+        cc(cc, uid) AS(\
+        SELECT COUNT(c.user_id), u.user_id FROM Comments c, Users u WHERE c.user_id=u.user_id GROUP BY u.user_id\
+    ),\
+        result(sum, uid) as (\
+        SELECT(IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp RIGHT OUTER JOIN cc ON cc.uid=cp.uid\
+        UNION\
+        SELECT(IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp LEFT OUTER JOIN cc ON cc.uid=cp.uid\
+    )\
+        SELECT u.first_name, u.last_name, u.email, r.sum FROM result r JOIN Users u ON r.uid = u.user_id WHERE r.uid <> -1 ORDER BY r.sum DESC LIMIT 10\
+        ")
     conn.commit()
-    users = c.fetchall()
-    rank = []
-    for user in users:
-        uid = user[0]
-        contribution = getActivity(uid)
-        if contribution != None:
-            rank.append((contribution, uid))
-    rank.sort(reverse=True)
-    topten = []
-    for user in rank[:10]:
-        contribution, uid = user
-        c.execute(
-            f"select first_name, last_name, email, {contribution}  from Users where user_id = {uid}")
-        conn.commit()
-        result = c.fetchone()
-        topten.append(result)
+    topten = c.fetchall()
+    # rank = []
+    # for user in users:
+    #     uid = user[0]
+    #     contribution = getActivity(uid)
+    #     if contribution != None:
+    #         rank.append((contribution, uid))
+    # rank.sort(reverse=True)
+    # topten = []
+    # for user in rank[:10]:
+    #     contribution, uid = user
+    #     c.execute(
+    #         f"select first_name, last_name, email, {contribution}  from Users where user_id = {uid}")
+    #     conn.commit()
+    #     result = c.fetchone()
+    #     topten.append(result)
     return render_template('top_users.html', topten=topten)
+
+
+@app.route("/like_data", methods=["GET"])
+def like_data():
+    photo_id = request.args.get('photo_id')
+    c = conn.cursor()
+    c.execute(
+        f"SELECT u.first_name, u.last_name, u.email FROM user_like_photo l NATURAL JOIN Users u Where photo_id = '{photo_id}'")
+    conn.commit()
+    result = c.fetchall()
+    c.execute(
+        f"SELECT COUNT(*) FROM user_like_photo WHERE photo_id = '{photo_id}'")
+    conn.commit()
+    count = c.fetchone()[0]
+    return render_template('like_data.html', results=result, count=count)
 
 
 @app.route("/friend_recommendation", methods=["GET"])
@@ -949,6 +983,7 @@ def friends_of_friends(user_id):
     friends_of_friends = {}
     for friend in friends:
         friend_id = friend[0]
+        # get the friends of the friend
         c.execute(
             f"SELECT u.user_id, u.first_name, u.last_name, u.email from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = '{friend_id}'")
         conn.commit()
@@ -964,11 +999,63 @@ def friends_of_friends(user_id):
                     friends_of_friends[item[0]] = [cur[0]+1, item]
     result = [v for v in friends_of_friends.values()]
     result.sort(reverse=True)
-    # print(result)
-    # for i in range(len(result)):
-    #     cur = result[i]
-    #     result[i] = cur[1]
     return result
+
+
+@app.route('/photo_recommendation', methods=['GET'])
+@flask_login.login_required
+def photo_recommendation():
+    user_id = getCurrentUserId()
+    photos = photoRecommendation(user_id)
+    return render_template('open_album.html', photos=photos, base64=base64, isMyPhoto=isMyPhoto, getOwnerId=getOwnerId, user_id=getCurrentUserId(), notLiked=notLiked, getTags=getTags)
+
+
+
+
+
+def photoRecommendation(user_id):
+    # first get the three most common tags of the user's photos
+    matchScore = 1000000
+    unmatchCost = 1
+    c = conn.cursor()
+    c.execute(f"SELECT COUNT(a.word) as count, a.word from\
+        users u NATURAL JOIN photos p NATURAL JOIN associate a WHERE u.user_id = 1 GROUP BY a.word ORDER BY count DESC LIMIT 3")
+    conn.commit()
+    fav3 = [x[1] for x in c.fetchall()]  # favorite 3 tags
+    print(fav3)
+    # get the photo id of all the photos
+    c.execute(f"SELECT photo_id FROM photos WHERE user_id <> '{user_id}'")
+    conn.commit()
+    photos = [x[0] for x in c.fetchall()]
+
+    # rate each photo
+    rating = {}
+    for photo_id in photos:
+        # get all the tags of the photo
+        c.execute(
+            f"SELECT a.word FROM associate a WHERE a.photo_id = '{photo_id}'")
+        conn.commit()
+        tags = [x[0] for x in c.fetchall()]
+        rating[photo_id] = 0
+        for tag in tags:
+            if tag in fav3:
+                rating[photo_id] += matchScore
+            else:
+                rating[photo_id] -= unmatchCost
+    result = [(v, k) for k, v in rating.items() if v > 0]
+    result.sort(reverse=True)
+    print(rating)
+    print(result)
+    # Now append the imgdata to the photo
+    final = []
+    for res in result:
+        pid = res[1]
+        c.execute(
+            f"SELECT imgdata,photo_id,caption FROM Photos WHERE photo_id = '{pid}'")
+        conn.commit()
+        data = c.fetchone()
+        final.append(data)
+    return final
 
 
 @app.route("/", methods=['GET'])

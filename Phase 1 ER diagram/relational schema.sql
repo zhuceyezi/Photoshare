@@ -1,14 +1,14 @@
 CREATE DATABASE IF NOT exists PA1;
 use PA1;
-DROP TABLE IF EXISTS user_create_comment CASCADE;
-DROP TABLE IF EXISTS user_like_Photo CASCADE;
-DROP TABLE IF EXISTS be_friend CASCADE;
-DROP TABLE IF EXISTS associate CASCADE;
-DROP TABLE IF EXISTS Tags CASCADE;
-DROP TABLE IF EXISTS Comments CASCADE;
-DROP TABLE IF EXISTS Photos CASCADE;
-DROP TABLE IF EXISTS Albums CASCADE;
-DROP TABLE IF EXISTS Users CASCADE;
+-- DROP TABLE IF EXISTS user_create_comment CASCADE;
+-- DROP TABLE IF EXISTS user_like_Photo CASCADE;
+-- DROP TABLE IF EXISTS be_friend CASCADE;
+-- DROP TABLE IF EXISTS associate CASCADE;
+-- DROP TABLE IF EXISTS Tags CASCADE;
+-- DROP TABLE IF EXISTS Comments CASCADE;
+-- DROP TABLE IF EXISTS Photos CASCADE;
+-- DROP TABLE IF EXISTS Albums CASCADE;
+-- DROP TABLE IF EXISTS Users CASCADE;
 
 CREATE TABLE Users ( -- capitalized entitys for notations
 	user_id INT4 AUTO_INCREMENT,
@@ -106,16 +106,18 @@ ALTER TABLE Users ADD COLUMN dob DATE;
 
 WITH cp(cp,uid) AS (
 SELECT COUNT(p.user_id), u.user_id FROM Photos p, Users u WHERE p.user_id = u.user_id GROUP BY u.user_id
-UNION
-SELECT 0, u.user_id FROM Users u
 ),
 cc(cc,uid) AS (
-SELECT COUNT(c.user_id)+0, u.user_id FROM Comments c, Users u WHERE c.user_id = u.user_id GROUP BY u.user_id
+SELECT COUNT(c.user_id), u.user_id FROM Comments c, Users u WHERE c.user_id = u.user_id GROUP BY u.user_id
 )
-SELECT (cc.cc+cp.cp) as Activity, cc.uid FROM cc LEFT OUTER JOIN cp ON cc.uid = cp.uid
+SELECT (IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp RIGHT OUTER JOIN cc ON cc.uid = cp.uid
 UNION
-SELECT (cc.cc+cp.cp) as Activity, cc.uid FROM cc RIGHT OUTER JOIN cp ON cc.uid = cp.uid;
+SELECT (IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp LEFT OUTER JOIN cc ON cc.uid = cp.uid;
 
 
 With f(user_id) as (SELECT u.user_id from be_friend b JOIN users u ON b.user_id_to = u.user_id WHERE b.user_id_from = 1)
 (SELECT u.user_id, u.first_name,u.last_name,u.email from be_friend b JOIN users u ON b.user_id_to = u.user_id);
+
+SELECT u.user_id, u.first_name, u.last_name, u.email from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = 1;
+
+SELECT u.first_name, u.last_name, u.email FROM user_like_photo l NATURAL JOIN Users u Where photo_id = 1;
