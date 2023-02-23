@@ -24,7 +24,7 @@ app.secret_key = 'aleafy'  # Change this!
 
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'              # change this
+app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'             # change this 'zhuceyezi'
 app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -561,34 +561,77 @@ def unassociateTag(word, photo_id):
     conn.commit()
 
 
-def viewAllPhotoByTag(tag):
+@app.route('/viewPhotosByTag/<tag>', defaults={'user_id': None})
+@app.route('/viewPhotosByTag/<tag>/<int:user_id>')
+def viewAllPhotosByTag(tag, user_id=None):
     """ 
     Input: (str) tag of a photo.\n
-    Output: a list of photo tuples (photo_id, imgdata, caption)\n
+    Output: a html template passing a list of photo tuples (photo_id, imgdata, caption)\n
     Exhibit all photos of a certain tag
     """
     cursor = conn.cursor()
-    query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate WHERE word = '{tag}'"
+    # query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate WHERE word = '{tag}'"
+    # cursor.execute(query)
+    # photos = cursor.fetchall()
+    # return photos
+    if user_id:
+        query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate \
+                  WHERE word = '{tag}' AND associate.photo_id = Photos.photo_id AND Photos.user_id = {user_id}"
+    else:
+        query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate \
+                  WHERE word = '{tag}' AND associate.photo_id = Photos.photo_id"
     cursor.execute(query)
     photos = cursor.fetchall()
-    return photos
+    
+    if request.method == 'POST':
+        view_type = request.form['view-type']
+    if view_type == 'all':
+        return redirect(url_for('viewPhotosByTag', tag=tag))
+    elif view_type == 'my':
+        return redirect(url_for('viewMyPhotosByTag', tag=tag, user_id=user_id))
+    
+
+    return render_template('viewPhotosByTag.html', tag=tag, user_id=user_id, photos=photos)
 
 
-def viewUserPhotoByTag(user_id, tag):
+
+@app.route('/viewUserPhotos/<int:user_id>/ByTag/<string:tag>', methods=["GET"])
+@flask_login.login_required
+def viewUserPhotosByTag(user_id, tag):
     """ 
     Input: (int) user_id of user.\n
     (str) tag of a photo.\n
-    Output: a list of photo tuples (photo_id, imgdata, caption)\n
+    Output: a html template passing a list of photo tuples (photo_id, imgdata, caption)\n
     Exhibit all photos of a certain tag of one user
     """
     cursor = conn.cursor()
-    query = f"SELECT photo_id FROM(SELECT associate.photo_id, Photos.user_id,\
-             Photos.caption FROM Photos, associate WHERE word='{tag}') as x WHERE x.user_id = {user_id}"
-    cursor.execute(query)
+    # query = f"SELECT photo_id FROM(SELECT associate.photo_id, Photos.user_id,\
+    #          Photos.caption FROM Photos, associate WHERE word='{tag}') as x WHERE x.user_id = {user_id}"
+    # cursor.execute(query)
+    # cursor.execute(query)
+    # photos = cursor.fetchall()
+    # return photos
+    #----------------------------------------------------------------------------------------------------
+    # Query to get all tags associated with user's photos
+    tags_query = f"SELECT DISTINCT word FROM associate WHERE photo_id IN \
+                   (SELECT photo_id FROM Photos WHERE user_id = {user_id})"
+    cursor.execute(tags_query)
+    tags = [row[0] for row in cursor.fetchall()]
+
+    # Query to get photos associated with selected tag
+    photos_query = f"SELECT photo_id, imgdata, caption FROM Photos, associate \
+                     WHERE word = '{tag}' AND photo_id = associate.photo_id \
+                     AND user_id = {user_id}"
+    cursor.execute(photos_query)
     photos = cursor.fetchall()
-    return photos
+    
+    cursor.close()
+    
+    return render_template('viewUserPhotosByTag.html', photos=photos, base64=base64, 
+                           user_id=user_id, tag=tag, tags=tags)
 
 
+@app.route('/popularTags', methods=["GET"])
 def viewMostPopularTags():
     """ List the most popular three tags, i.e., the three tags 
         that are associated with the largest number of photos, in descending
@@ -597,17 +640,17 @@ def viewMostPopularTags():
     cursor.execute(
         f"SELECT word FROM (SELECT word, COUNT(photo_id) FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3) as x")
     tags = cursor.fetchall()
-    return tags
+    return render_template('popularTags.html', tags=tags)
 
 
-def searchByTags(str):
+def searchByTags(string):
     """ search by a list of tags.For example, a visitor could enter the words "friends boston" in an input box, click 
     the search button, and be presented with all photos that contain both the tag "friends" and the tag "boston". """
-    tags = str.split(" ")
+    tags = string.split(" ")
     cursor = conn.cursor()
     lst = []
     for tag in tags:
-        cursor.commit(
+        cursor.execute(
             "SELECT p.imgdata, p.photo_id, p.caption FROM photos p, (SELECT photo_id, word FROM associate WHERE word = '{tag}') as x WHERE p.photo_id = x.photo_id;")
         lst += cursor.fetchall()
     return lst
@@ -709,9 +752,9 @@ def likePhoto():
     cursor.close()                      # close the cursor
 
     # return success message
-    if src == 'open_album':
+    if src == 'open_album':         # if the user is coming from the open_album page
         return redirect(url_for('open_album', album_id=album_id))
-    elif src == 'gallery':
+    elif src == 'gallery':          # if the user is coming from the gallery page
         return redirect(url_for('getAllPhotos'))
     elif src == 'photo_recommendation':
         return redirect(url_for('photo_recommendation'))
@@ -1104,7 +1147,7 @@ def photoRecommendation(user_id):
 def hello():
     return render_template('hello.html', message='Welecome to Photoshare')
 
-
+5
 if __name__ == "__main__":
     # this is invoked when in the shell  you run
     # $ python app.py

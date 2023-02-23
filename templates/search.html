@@ -2,10 +2,14 @@
     <title>Search</title>
 </head>
 <body>
-    <h2>Search stuff:</h2>
+  <!-- Navigation Bar -->
+    <div class="navbar">
+        <li><a href="/">Go to home</a></li>
+    </div>
+    <h2>Search photo by tags:</h2>
     <form method="post" enctype="multipart/form-data" action="/search_comment">
-    <label for="str">Please Enter Comment for search:</label>
-    <input type="text" name="str" required="true" /><br />
+    <label for="string">Please Enter Comment for search:</label>
+    <input type="text" name="string" required="true" /><br />
     <input type="submit" value="Search" />
   </form>
 </body>

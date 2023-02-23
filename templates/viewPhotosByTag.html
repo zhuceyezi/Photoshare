@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Photos By Tag</title>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <div class="navbar">
+        <li><a href="/">Go to home</a></li>
+    </div>
+
+    <h1>View Photos By Tag</h1>
+
+    <!-- Switch between "View All Photos" and "View My Photos" -->
+    <div id="switch-container">
+        <h3>Switch between "View All Photos" and "View My Photos"</h3>
+        <form action="#" method="post">
+            
+            <label for="view-all">View All Photos</label>
+            <input type="radio" name="view-type" id="view-all" value="all" {% if view_type == 'all' %}checked{% endif %}>
+
+            <label for="view-my">View My Photos</label>
+            <input type="radio" name="view-type" id="view-my" value="my" {% if view_type == 'my' %}checked{% endif %}>
+
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+
+    <!-- Search Photos by Tags -->
+    <div id="search-container">
+        <h3>Search Photos by Tags</h3>
+        <form action="{{ url_for('viewPhotosByTag', tag=tag, user_id=user_id) }}" method="post">
+          <input type="text" name="search-tags" placeholder="Enter tags separated by spaces">
+          <input type="submit" value="Search">
+        </form>
+      </div>
+
+    <!-- Photo Container -->
+    <div id="photo-container">
+        <!-- Display photos associated with the selected tag --> 
+        {% if photos %}
+            {% for photo in photos %}
+            <div class="photo"> 
+                <!-- photo[0] is the photo's binary data -->
+                <img src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}'> 
+                <p>{{ photo[2] }}</p>  <!-- show photo's caption to screen--> 
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No photos found for tag "{{ tag }}".</p>
+    {% endif %}
+
+    </div>
+
+    <div id="tag-container">
+        <h3>Tags:</h3>
+        <ul>
+            <!-- Display tags associated with the selected photos -->
+            {% if tags %}
+                {% for tag in tags %}
+            <li><a href="/viewPhotosByTag/{{ tag[0] }}">{{ tag[0] }}</a></li>
+                {% endfor %}
+            {% endif %}
+
+        </ul>
+    </div>
+
+    
+
+    <div id="no-photos-container">
+        <!-- Display a message if there are no photos associated with the selected tag -->
+        {% if not photos %}
+        <p>No photos associated with this tag.</p>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>
