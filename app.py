@@ -24,7 +24,7 @@ app.secret_key = 'aleafy'  # Change this!
 
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'             # change this 'zhuceyezi'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'Huohx123'             # change this 'zhuceyezi'
 app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -561,15 +561,17 @@ def unassociateTag(word, photo_id):
     conn.commit()
 
 
-@app.route('/viewPhotosByTag/<tag>', defaults={'user_id': None})
-@app.route('/viewPhotosByTag/<tag>/<int:user_id>')
-def viewAllPhotosByTag(tag, user_id=None):
+# @app.route('/viewPhotosByTag/<tag>', defaults={'user_id': None})
+@app.route('/viewPhotosByTag', methods=['GET'])
+def viewAllPhotosByTag():
     """ 
     Input: (str) tag of a photo.\n
     Output: a html template passing a list of photo tuples (photo_id, imgdata, caption)\n
     Exhibit all photos of a certain tag
     """
     cursor = conn.cursor()
+    # get tag from url
+    tag = request.args.get('tag')
     # query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate WHERE word = '{tag}'"
     # cursor.execute(query)
     # photos = cursor.fetchall()
@@ -586,18 +588,18 @@ def viewAllPhotosByTag(tag, user_id=None):
     if request.method == 'POST':
         view_type = request.form['view-type']
     if view_type == 'all':
-        return redirect(url_for('viewPhotosByTag', tag=tag))
+        return redirect(url_for('viewPhotosByTag', tag=tag, photos= photos[1]))
     elif view_type == 'my':
-        return redirect(url_for('viewMyPhotosByTag', tag=tag, user_id=user_id))
+        return redirect(url_for('viewUserPhotosByTag', tag=tag, user_id=user_id, photos= photos[1]))
     
 
-    return render_template('viewPhotosByTag.html', tag=tag, user_id=user_id, photos=photos)
+    return render_template('viewPhotosByTag.html', tag=tag, photos=photos)
 
 
 
-@app.route('/viewUserPhotos/<int:user_id>/ByTag/<string:tag>', methods=["GET"])
+@app.route('/viewUserPhotosByTag', methods=["GET"])
 @flask_login.login_required
-def viewUserPhotosByTag(user_id, tag):
+def viewUserPhotosByTag():
     """ 
     Input: (int) user_id of user.\n
     (str) tag of a photo.\n
@@ -605,6 +607,8 @@ def viewUserPhotosByTag(user_id, tag):
     Exhibit all photos of a certain tag of one user
     """
     cursor = conn.cursor()
+    user_id = request.args.get('user_id')
+    tag = request.args.get('tag')
     # query = f"SELECT photo_id FROM(SELECT associate.photo_id, Photos.user_id,\
     #          Photos.caption FROM Photos, associate WHERE word='{tag}') as x WHERE x.user_id = {user_id}"
     # cursor.execute(query)
@@ -614,24 +618,24 @@ def viewUserPhotosByTag(user_id, tag):
     #----------------------------------------------------------------------------------------------------
     # Query to get all tags associated with user's photos
     tags_query = f"SELECT DISTINCT word FROM associate WHERE photo_id IN \
-                   (SELECT photo_id FROM Photos WHERE user_id = {user_id})"
+                   (SELECT photo_id FROM Photos WHERE user_id = '{user_id}')"
     cursor.execute(tags_query)
     tags = [row[0] for row in cursor.fetchall()]
 
     # Query to get photos associated with selected tag
-    photos_query = f"SELECT photo_id, imgdata, caption FROM Photos, associate \
-                     WHERE word = '{tag}' AND photo_id = associate.photo_id \
-                     AND user_id = {user_id}"
+    photos_query = f"SELECT Photos.photo_id, imgdata, caption FROM Photos, associate \
+                     WHERE word = '{tag}' AND Photos.photo_id = associate.photo_id \
+                     AND user_id = '{user_id}'"
     cursor.execute(photos_query)
     photos = cursor.fetchall()
     
     cursor.close()
-    
-    return render_template('viewUserPhotosByTag.html', photos=photos, base64=base64, 
+    conn.commit() # commit changes to db
+    return render_template('viewUserPhotosByTag.html', photos=photos[1], base64=base64, 
                            user_id=user_id, tag=tag, tags=tags)
 
 
-@app.route('/popularTags', methods=["GET"])
+@app.route('/viewMostpopularTags', methods=["GET"])
 def viewMostPopularTags():
     """ List the most popular three tags, i.e., the three tags 
         that are associated with the largest number of photos, in descending
@@ -640,7 +644,8 @@ def viewMostPopularTags():
     cursor.execute(
         f"SELECT word FROM (SELECT word, COUNT(photo_id) FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3) as x")
     tags = cursor.fetchall()
-    return render_template('popularTags.html', tags=tags)
+    conn.commit()
+    return render_template('viewMostPopularTags.html', tags=tags)
 
 
 def searchByTags(string):
@@ -651,7 +656,7 @@ def searchByTags(string):
     lst = []
     for tag in tags:
         cursor.execute(
-            "SELECT p.imgdata, p.photo_id, p.caption FROM photos p, (SELECT photo_id, word FROM associate WHERE word = '{tag}') as x WHERE p.photo_id = x.photo_id;")
+            "SELECT p.imgdata, p.photo_id, p.caption FROM photos p, (SELECT photo_id, word FROM associate WHERE word = '{{tag}}') as x WHERE p.photo_id = x.photo_id;")
         lst += cursor.fetchall()
     return lst
 

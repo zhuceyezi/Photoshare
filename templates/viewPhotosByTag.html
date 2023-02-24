@@ -11,7 +11,7 @@
 
     <h1>View Photos By Tag</h1>
 
-    <!-- Switch between "View All Photos" and "View My Photos" -->
+    <!-- Switch between "View All Photos" and "View My Photos" --> 
     <div id="switch-container">
         <h3>Switch between "View All Photos" and "View My Photos"</h3>
         <form action="#" method="post">
@@ -29,7 +29,7 @@
     <!-- Search Photos by Tags -->
     <div id="search-container">
         <h3>Search Photos by Tags</h3>
-        <form action="{{ url_for('viewPhotosByTag', tag=tag, user_id=user_id) }}" method="post">
+        <form action="{{ url_for('viewPhotosByTag', tag=tag, photos=photos[1]) }}" method="post">
           <input type="text" name="search-tags" placeholder="Enter tags separated by spaces">
           <input type="submit" value="Search">
         </form>
@@ -58,7 +58,7 @@
             <!-- Display tags associated with the selected photos -->
             {% if tags %}
                 {% for tag in tags %}
-            <li><a href="/viewPhotosByTag/{{ tag[0] }}">{{ tag[0] }}</a></li>
+            <li><a href="/viewPhotosByTag?tag={{tag}}&photos= {{photos[1]}}">{{ tag[0] }}</a></li> <!--photos[1] is imgdata-->>
                 {% endfor %}
             {% endif %}
 

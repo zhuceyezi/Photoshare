@@ -12,7 +12,7 @@
     <!-- Search Photos by Tags -->
     <div id="search-container">
         <h3>Search Photos by Tags</h3>
-        <form action="{{ url_for('viewUserPhotoByTag', tag=tag, user_id=user_id) }}" method="post">
+        <form action="{{ url_for('viewUserPhotoByTag', tag=tag, user_id=user_id, photos= photos[1]) }}" method="post">
           <input type="text" name="search-tags" placeholder="Enter tags separated by spaces">
           <input type="submit" value="Search">
         </form>
@@ -38,7 +38,8 @@
         {% if tags %}
             <ul>
                 {% for tag in tags %}
-                <li><a href="/viewUserPhotosByTag/{{ user_id }}/{{ tag[0] }}">{{ tag[0] }}</a></li>
+                <li><a href="/viewUserPhotosByTag/?photos={{photos}}&base64={{base64}}&
+                    user_id={{user_id}}&tag={{tag}}& tags={{tags}}">{{ tag[0] }}</a></li> 
                 {% endfor %}
             </ul>
         {% else %}
