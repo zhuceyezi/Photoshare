@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View My Photos by Tag</title>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <div class="navbar">
+        <li><a href="/">Go to home</a></li>
+    </div>
+
+    <!-- Search Photos by Tags -->
+    <div id="search-container">
+        <h3>Search Photos by Tags</h3>
+        <form action="{{ url_for('viewUserPhotoByTag', tag=tag, user_id=user_id, photos= photos[1]) }}" method="post">
+          <input type="text" name="search-tags" placeholder="Enter tags separated by spaces">
+          <input type="submit" value="Search">
+        </form>
+      </div>
+
+    <!-- Photo Container -->
+    <div class="photo-container">
+        {% if photos %}
+            {% for photo in photos %}
+                <div class="photo">
+                    <img src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}'>
+                    <p>{{ photo[2] }}</p>  <!-- show photo's caption to screen--> 
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No photos found for tag "{{ tag }}".</p>
+        {% endif %}
+    </div>
+
+    <!-- Tag Container -->
+    <div class="tag-container">
+        <h3>Tags</h3>
+        {% if tags %}
+            <ul>
+                {% for tag in tags %}
+                <li><a href="/viewUserPhotosByTag/?photos={{photos}}&base64={{base64}}&
+                    user_id={{user_id}}&tag={{tag}}& tags={{tags}}">{{ tag[0] }}</a></li> 
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No tags found for user {{ user_id }}.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

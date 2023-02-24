@@ -22,6 +22,7 @@ mysql = MySQL()
 app = Flask(__name__)
 app.secret_key = 'aleafy'  # Change this!
 
+visitor_id = -1
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
 app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'             # change this 'zhuceyezi'
@@ -562,8 +563,8 @@ def unassociateTag(word, photo_id):
 
 
 # @app.route('/viewPhotosByTag/<tag>', defaults={'user_id': None})
-@app.route('/viewPhotosByTag', methods=['GET'])
-def viewAllPhotosByTag():
+
+def viewAllPhotosByTag_steve():
     """ 
     Input: (str) tag of a photo.\n
     Output: a html template passing a list of photo tuples (photo_id, imgdata, caption)\n
@@ -572,34 +573,25 @@ def viewAllPhotosByTag():
     cursor = conn.cursor()
     # get tag from url
     tag = request.args.get('tag')
+    user_id = getCurrentUserId()
     # query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate WHERE word = '{tag}'"
     # cursor.execute(query)
     # photos = cursor.fetchall()
     # return photos
-    if user_id:
-        query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate \
-                  WHERE word = '{tag}' AND associate.photo_id = Photos.photo_id AND Photos.user_id = {user_id}"
+    if user_id != visitor_id:
+        query = f"SELECT p.imgdata, p.photo_id, p.caption, a.word FROM associate a NATURAL JOIN Photos p WHERE a.word = '{tag}' AND p.user_id = '{user_id}'"
     else:
-        query = f"SELECT associate.photo_id, Photos.imgdata, Photos.caption FROM Photos, associate \
-                  WHERE word = '{tag}' AND associate.photo_id = Photos.photo_id"
+        query = f"SELECT p.imgdata, p.photo_id, p.caption, a.word FROM associate a NATURAL JOIN Photos p WHERE a.word = '{tag}'"
     cursor.execute(query)
     photos = cursor.fetchall()
-    
-    if request.method == 'POST':
-        view_type = request.form['view-type']
-    if view_type == 'all':
-        return redirect(url_for('viewPhotosByTag', tag=tag, photos= photos[1]))
-    elif view_type == 'my':
-        return redirect(url_for('viewUserPhotosByTag', tag=tag, user_id=user_id, photos= photos[1]))
-    
 
     return render_template('viewPhotosByTag.html', tag=tag, photos=photos)
 
 
 
-@app.route('/viewUserPhotosByTag', methods=["GET"])
-@flask_login.login_required
-def viewUserPhotosByTag():
+
+
+def viewUserPhotosByTag_steve():
     """ 
     Input: (int) user_id of user.\n
     (str) tag of a photo.\n
@@ -635,6 +627,54 @@ def viewUserPhotosByTag():
     return render_template('viewUserPhotosByTag.html', photos=photos[1], base64=base64, 
                            user_id=user_id, tag=tag, tags=tags)
 
+@app.route('/viewAllByTag', methods=['GET'])
+def viewAllPhotoTags():
+    # get all tags of all photo
+    c = conn.cursor()
+    c.execute(f"SELECT DISTINCT word FROM Associate")
+    conn.commit()
+    tags = [x[0] for x in c.fetchall()]
+    return render_template('viewByTag.html', tags=tags, viewType = "All")
+
+@app.route('/viewUserByTag',methods=['GET'])
+@flask_login.login_required
+def viewUserPhotoTags():
+    c = conn.cursor()
+    user_id = getCurrentUserId()
+    c.execute(f"SELECT a.word FROM associate a NATURAL JOIN Photos p WHERE p.user_id = {user_id}")
+    conn.commit()
+    tags = [x[0] for x in c.fetchall()]
+    return render_template('viewByTag.html',tags=tags,viewType="User")
+    
+ 
+@app.route('/viewAllPhotosByTag', methods=['GET'])
+def viewAllPhotosByTag():
+    tag = request.args.get('tag')
+    c = conn.cursor()
+    c.execute(f"SELECT DISTINCT word FROM Associate")
+    conn.commit()
+    tags = [x[0] for x in c.fetchall()]
+    
+    c.execute(f"SELECT p.imgdata, p.photo_id, p.caption, a.word FROM associate a NATURAL JOIN Photos p WHERE a.word = '{tag}'")
+    conn.commit()
+    result = c.fetchall()
+    return render_template('viewByTag.html',photos=result, tag=tag, tags=tags,viewType="All",base64=base64,notLiked=notLiked,getOwnerId=getOwnerId,user_id=getCurrentUserId(),getTags=getTags)
+                    
+@app.route('/viewUserPhotosByTag',methods=['GET'])
+@flask_login.login_required
+def viewUserPhotosByTag():
+    tag = request.args.get('tag')
+    c = conn.cursor()
+    user_id = getCurrentUserId()
+    c.execute(f"SELECT a.word FROM associate a NATURAL JOIN Photos p WHERE p.user_id = '{user_id}'")
+    conn.commit()
+    tags = [x[0] for x in c.fetchall()]
+    
+    c.execute(f"SELECT p.imgdata, p.photo_id, p.caption, a.word FROM associate a NATURAL JOIN Photos p WHERE a.word = '{tag}' AND p.user_id='{user_id}'")
+    conn.commit()
+    result = c.fetchall()
+    return render_template('viewByTag.html',photos=result, tag=tag, tags=tags,viewType="User",base64=base64,notLiked=notLiked,getOwnerId=getOwnerId,user_id=getCurrentUserId(),getTags=getTags)
+        
 
 @app.route('/viewMostpopularTags', methods=["GET"])
 def viewMostPopularTags():
@@ -798,6 +838,12 @@ def likePhoto():
     elif src == 'searchPhotoByTags':
         str = request.args.get('str')
         return redirect(url_for('searchPhotoByTags', str=str))
+    elif src == 'viewAllByTag':
+        tag = request.args.get("tag")
+        return redirect(url_for('viewAllPhotosByTag', tag=tag))
+    elif src == 'viewUserByTag':
+        tag = request.args.get("tag")
+        return redirect(url_for('viewUserPhotosByTag', tag=tag))
 
 
 @app.route('/unlike', methods=['GET'])
@@ -821,6 +867,12 @@ def unlikePhoto():
     elif src == 'searchPhotoByTags':
         str = request.args.get('str')
         return redirect(url_for('searchPhotoByTags', str=str))
+    elif src == 'viewByTag':
+        tag = request.args.get("tag")
+        return redirect(url_for('viewAllPhotosByTag', tag=tag))
+    elif src == 'viewUserByTag':
+        tag = request.args.get("tag")
+        return redirect(url_for('viewUserPhotosByTag', tag=tag))
 
 # steven done
 

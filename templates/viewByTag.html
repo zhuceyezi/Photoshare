@@ -1,0 +1,62 @@
+<head>
+  <title>View By Tag</title>
+</head>
+<body>
+  <h1><a href="/">Go to home</a></h1>
+  {% if viewType == "All" %}
+  <h2>View All photo by tag:</h2>
+  <h2><a href="/viewUserByTag">Switch: View Your Photo by tag (login required):</h2></a>
+  {% for tag in tags %}
+  <a href="/viewAllPhotosByTag?tag={{tag}}">{{tag}}</a>
+  <br/>
+  {% endfor %}
+   {% for photo in photos %}
+  <!-- photo: imgdata, photo_id, caption -->
+  <li>
+    {{photo[2]}}<br />
+    <img src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}' />
+  </li>
+  <a href="/comments?photo_id={{photo[1]}}"> [Comments] </a>
+  {% if user_id != -1 and user_id != getOwnerId(photo[1]) and notLiked(user_id,photo[1]) %}
+  <a href="/like?photo_id={{photo[1]}}&src=viewByTag&tag={{tag}}"> [Like this Photo]</a>
+  {% endif %}
+  {% if not notLiked(user_id,photo[1]) %}
+  <a href="/unlike?photo_id={{photo[1]}}&src=viewByTag&tag={{tag}}">[Unlike]</a>
+  {% endif %}
+  <a href="/like_data?photo_id={{photo[1]}}">[Like data]</a>
+  <br />
+  tags: {{getTags(photo[1])}}
+  </br>
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  {% endfor %}
+  {% endif %}
+
+<!-- --------------------------------------------------------------------------------- -->
+  {% if viewType == "User" %}
+  <h2>View Your photo by tag:</h2>
+  <h2><a href="/viewAllByTag">Switch: View All Photo by tag:</h2></a>
+  {% for tag in tags %}
+  <a href="/viewUserPhotosByTag?tag={{tag}}">{{tag}}</a>
+  <br/>
+  {% endfor %}
+   {% for photo in photos %}
+  <!-- photo: imgdata, photo_id, caption -->
+  <li>
+    {{photo[2]}}<br />
+    <img src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}' />
+  </li>
+  <a href="/comments?photo_id={{photo[1]}}"> [Comments] </a>
+  {% if user_id != -1 and user_id != getOwnerId(photo[1]) and notLiked(user_id,photo[1]) %}
+  <a href="/like?photo_id={{photo[1]}}&src=viewUserByTag&tag={{tag}}"> [Like this Photo]</a>
+  {% endif %}
+  {% if not notLiked(user_id,photo[1]) %}
+  <a href="/unlike?photo_id={{photo[1]}}&src=viewUserByTag&tag={{tag}}">[Unlike]</a>
+  {% endif %}
+  <a href="/like_data?photo_id={{photo[1]}}">[Like data]</a>
+  <br />
+  tags: {{getTags(photo[1])}}
+  </br>
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  {% endfor %}
+  {% endif %}
+</body>
