@@ -657,24 +657,41 @@ def searchPhotoByTags():
         str = request.form.get("str")
     if request.method == "GET":
         str = request.args.get("str")
-    cursor = conn.cursor()
     tags = str.split(" ")
     lst = []
     mid = ""
-    for tag in tags:
-        mid += f" OR t.word = '{tag}'"
-    with_clause = f"WITH qtags(word) as (SELECT t.word FROM tags t WHERE t.word = '123'{mid}),"
+    for i in range(len(tags)):
+        tag = tags[i]
+        if i == 0:
+            mid += f"'{tag}'"
+        else:
+            mid += f" OR t.word = '{tag}'"
+    with_clause = f"WITH qtags(word) as (SELECT t.word FROM tags t WHERE t.word ={mid}),"
     query = f"{with_clause} pids(photo_id) as (SELECT photo_id FROM Photos),\
 dq(photo_id,word) as ((SELECT p.photo_id, qt.word FROM pids p, qtags qt) EXCEPT (SELECT a.photo_id, a.word FROM Associate a)),\
-qualifiedPids(photo_id) as (SELECT p.photo_id FROM pids p EXCEPT (SELECT photo_id FROM dq))\
-(SELECT p.imgdata, p.photo_id, p.caption FROM associate a NATURAL JOIN qualifiedPids q NATURAL JOIN Photos p)"
+qualifiedPids(photo_id) as (SELECT p.photo_id FROM pids p EXCEPT (SELECT photo_id FROM dq)),\
+result(imgdata, photo_id, caption, word) as (SELECT p.imgdata, p.photo_id, p.caption, a.word FROM associate a NATURAL JOIN qualifiedPids q NATURAL JOIN Photos p )\
+(SELECT DISTINCT r.imgdata, r.photo_id, r.caption FROM result r)"
     c = conn.cursor()
-    c.execute(query)
-    conn.commit()
-    lst = c.fetchall()
+    # check if tag exists:
+    exists = True
+    if allTagExists(tags):
+        c.execute(query)
+        conn.commit()
+        lst = c.fetchall()
+    else:
+        lst = []
     return render_template("search_result.html", user_id=getCurrentUserId(),getOwnerId=getOwnerId,photos=lst, base64=base64, notLiked=notLiked, getTags=getTags, str=str) 
 
-
+def allTagExists(tags):
+    c = conn.cursor()
+    for tag in tags:
+        c.execute(f"SELECT word FROM tags WHERE word = '{tag}'")
+        conn.commit()
+        result = c.fetchone()
+        if result == None:
+            return False
+    return True
 
 @app.route("/comments", methods=["GET"])
 def show_comments():
