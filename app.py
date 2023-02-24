@@ -24,7 +24,7 @@ app.secret_key = 'aleafy'  # Change this!
 
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'Huohx123'             # change this 'zhuceyezi'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'             # change this 'zhuceyezi'
 app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -607,8 +607,7 @@ def viewUserPhotosByTag():
     Exhibit all photos of a certain tag of one user
     """
     cursor = conn.cursor()
-    user_id = request.args.get('user_id')
-    tag = request.args.get('tag')
+    user_id = getCurrentUserId()
     # query = f"SELECT photo_id FROM(SELECT associate.photo_id, Photos.user_id,\
     #          Photos.caption FROM Photos, associate WHERE word='{tag}') as x WHERE x.user_id = {user_id}"
     # cursor.execute(query)
@@ -620,17 +619,19 @@ def viewUserPhotosByTag():
     tags_query = f"SELECT DISTINCT word FROM associate WHERE photo_id IN \
                    (SELECT photo_id FROM Photos WHERE user_id = '{user_id}')"
     cursor.execute(tags_query)
+    conn.commit()
     tags = [row[0] for row in cursor.fetchall()]
 
     # Query to get photos associated with selected tag
-    photos_query = f"SELECT Photos.photo_id, imgdata, caption FROM Photos, associate \
-                     WHERE word = '{tag}' AND Photos.photo_id = associate.photo_id \
-                     AND user_id = '{user_id}'"
+    photos_query = f"SELECT p.photo_id, p.imgdata, p.caption FROM Photos p, associate a\
+                     WHERE a.word = '{tag}' AND p.photo_id = a.photo_id \
+                     AND p.user_id = '{user_id}'"
     cursor.execute(photos_query)
+    conn.commit()
     photos = cursor.fetchall()
-    
+    print(photos)
     cursor.close()
-    conn.commit() # commit changes to db
+     # commit changes to db
     return render_template('viewUserPhotosByTag.html', photos=photos[1], base64=base64, 
                            user_id=user_id, tag=tag, tags=tags)
 
@@ -648,17 +649,31 @@ def viewMostPopularTags():
     return render_template('viewMostPopularTags.html', tags=tags)
 
 
-def searchByTags(string):
+@app.route('/search_tags', methods=["GET","POST"])
+def searchPhotoByTags():
     """ search by a list of tags.For example, a visitor could enter the words "friends boston" in an input box, click 
     the search button, and be presented with all photos that contain both the tag "friends" and the tag "boston". """
-    tags = string.split(" ")
+    if request.method == "POST":
+        str = request.form.get("str")
+    if request.method == "GET":
+        str = request.args.get("str")
     cursor = conn.cursor()
+    tags = str.split(" ")
     lst = []
+    mid = ""
     for tag in tags:
-        cursor.execute(
-            "SELECT p.imgdata, p.photo_id, p.caption FROM photos p, (SELECT photo_id, word FROM associate WHERE word = '{{tag}}') as x WHERE p.photo_id = x.photo_id;")
-        lst += cursor.fetchall()
-    return lst
+        mid += f" OR t.word = '{tag}'"
+    with_clause = f"WITH qtags(word) as (SELECT t.word FROM tags t WHERE t.word = '123'{mid}),"
+    query = f"{with_clause} pids(photo_id) as (SELECT photo_id FROM Photos),\
+dq(photo_id,word) as ((SELECT p.photo_id, qt.word FROM pids p, qtags qt) EXCEPT (SELECT a.photo_id, a.word FROM Associate a)),\
+qualifiedPids(photo_id) as (SELECT p.photo_id FROM pids p EXCEPT (SELECT photo_id FROM dq))\
+(SELECT p.imgdata, p.photo_id, p.caption FROM associate a NATURAL JOIN qualifiedPids q NATURAL JOIN Photos p)"
+    c = conn.cursor()
+    c.execute(query)
+    conn.commit()
+    lst = c.fetchall()
+    return render_template("search_result.html", user_id=getCurrentUserId(),getOwnerId=getOwnerId,photos=lst, base64=base64, notLiked=notLiked, getTags=getTags, str=str) 
+
 
 
 @app.route("/comments", methods=["GET"])
@@ -763,6 +778,9 @@ def likePhoto():
         return redirect(url_for('getAllPhotos'))
     elif src == 'photo_recommendation':
         return redirect(url_for('photo_recommendation'))
+    elif src == 'searchPhotoByTags':
+        str = request.args.get('str')
+        return redirect(url_for('searchPhotoByTags', str=str))
 
 
 @app.route('/unlike', methods=['GET'])
@@ -783,6 +801,9 @@ def unlikePhoto():
         return redirect(url_for('getAllPhotos'))
     elif src == 'photo_recommendation':
         return redirect(url_for('photo_recommendation'))
+    elif src == 'searchPhotoByTags':
+        str = request.args.get('str')
+        return redirect(url_for('searchPhotoByTags', str=str))
 
 # steven done
 

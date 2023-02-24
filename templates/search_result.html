@@ -9,4 +9,25 @@
     {{result[0]}} {{result[1]}} [{{result[2]}}], matched {{result[4]}} results.
   </h2>
   {% endfor %}
+  {% for photo in photos %}
+  <!-- photo: imgdata, photo_id, caption -->
+  <li>
+    {{photo[2]}}<br />
+    <img src='data:image/jpg;base64, {{base64.b64encode(photo[0]).decode("ascii")}}' />
+  </li>
+  <a href="/comments?photo_id={{photo[1]}}"> [Comments] </a>
+  {% if user_id != -1 and user_id != getOwnerId(photo[1]) and notLiked(user_id,photo[1]) %}
+  <a href="/like?photo_id={{photo[1]}}&src=searchPhotoByTags&str={{str}}"> [Like this Photo]</a>
+  {% endif %}
+  {% if not notLiked(user_id,photo[1]) %}
+  <a href="/unlike?photo_id={{photo[1]}}&src=searchPhotoByTags&str={{str}}">[Unlike]</a>
+  {% endif %}
+  <a href="/like_data?photo_id={{photo[1]}}">[Like data]</a>
+  <br />
+  tags: {{getTags(photo[1])}}
+  </br>
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  </br>
+  </li>
+  {% endfor %}
 </body>
