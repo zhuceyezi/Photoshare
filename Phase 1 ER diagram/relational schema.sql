@@ -131,3 +131,6 @@ select * from be_friend;
 
 
 
+/* CREATE ASSERTION Comment-Constraint CHECK
+(NOT EXISTS (SELECT * FROM Comments C, Photos P
+WHERE C.photo_id = P.photo_id AND P.user_id = C.user_id)) */
