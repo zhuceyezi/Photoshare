@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Most Popular Tags</title>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Navigation Bar -->
     <div class="navbar">
-        <li><a href="/">Go to home</a></li>
+      <li><a href="/">Go to home</a></li>
     </div>
-    
+
     <h1>Most Popular Tags</h1>
     <ul>
-        {% for tag in tags %}
-            <li>{{ tag[0] }}</li> <!-- show tag name as word.-->
-        {% endfor %}
+      {% for tag in tags %}
+      <li>{{ tag[0] }}, score: {{tag[1]}}</li>
+      <!-- show tag name as word.-->
+      {% endfor %}
     </ul>
-</body>
+  </body>
 </html>

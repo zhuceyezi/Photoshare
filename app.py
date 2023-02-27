@@ -683,9 +683,9 @@ def viewMostPopularTags():
         popularity order."""
     cursor = conn.cursor()
     cursor.execute(
-        f"SELECT word FROM (SELECT word, COUNT(photo_id) FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3) as x")
-    tags = cursor.fetchall()
+        f"SELECT word, count FROM (SELECT word, COUNT(photo_id) as count FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3) as x")
     conn.commit()
+    tags = cursor.fetchall()
     return render_template('viewMostPopularTags.html', tags=tags)
 
 
@@ -1152,11 +1152,12 @@ def friends_of_friends(user_id):
               ")
     conn.commit()
     friends = list(c.fetchall())
+    ans_f = []
     for friend in friends:
-        if isAFriend(friend[1]):
-            friends.remove(friend)
-    print(friends)
-    return friends
+        if not isAFriend(friend[1]):
+            ans_f.append(friend)
+    print(ans_f)
+    return ans_f
     # c = conn.cursor()
     # # Get all friend ids
     # c.execute(
@@ -1203,7 +1204,7 @@ def photoRecommendation(user_id):
     conn.commit()
     fav3 = [x[1] for x in c.fetchall()]  # favorite 3 tags
     print(fav3)
-    # get the photo id of all the photos
+    # get the photo id of all the photos except the user's
     c.execute(f"SELECT photo_id FROM photos WHERE user_id <> '{user_id}'")
     conn.commit()
     photos = [x[0] for x in c.fetchall()]
