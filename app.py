@@ -25,7 +25,7 @@ app.secret_key = 'aleafy'  # Change this!
 visitor_id = -1
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'             # change this 'zhuceyezi'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'Huohx123'             # change this 'zhuceyezi'
 app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -146,6 +146,7 @@ def unauthorized_handler():
 
 
 @app.route('/create_album', methods=['GET', 'POST'])
+@flask_login.login_required
 def create_album():
     if request.method == "POST":
         album_name = request.form.get('album_name')
@@ -180,8 +181,15 @@ def register_user():
         first_name = request.form.get('first_name')
         last_name = request.form.get('last_name')
         dob = request.form.get('dob')
+        print(f"dob: {dob}")
+        if dob == '':
+            dob = None
         hometown = request.form.get('hometown')
+        if hometown == '':
+            hometown = None
         gender = request.form.get('gender')
+        if gender == '':
+            gender = None
     except:
         # this prints to shell, end users will not see this (all print statements go to shell)
         print("couldn't find all tokens")
@@ -189,8 +197,8 @@ def register_user():
     cursor = conn.cursor()
     test = isEmailUnique(email)
     if test:
-        print(cursor.execute(
-            f"INSERT INTO Users (first_name, last_name, email, dob, hometown, gender, password) VALUES ('{first_name}', '{last_name}','{email}', '{dob}', '{hometown}', '{gender}', '{password}')"))
+        query = "INSERT INTO Users (first_name, last_name, email, dob, hometown, gender, password) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        cursor.execute(query, (first_name, last_name, email, dob, hometown, gender, password))
         conn.commit()
         # log user in
         user = User()
@@ -290,8 +298,8 @@ def isAFriend(to_user_id):
     cursor.execute(
         f"SELECT user_id_to FROM be_friend WHERE user_id_from = '{user_id}' AND user_id_to = '{to_user_id}'")
     conn.commit()
-    fetchRes = cursor.fetchone()
-    if fetchRes is None and to_user_id != user_id:
+    fetchRes = cursor.fetchone() # fetchone() returns None if no result
+    if fetchRes is None and to_user_id != user_id: # if the user is not a friend and not the current user
         return False
     return True
 
@@ -641,7 +649,7 @@ def viewAllPhotoTags():
 def viewUserPhotoTags():
     c = conn.cursor()
     user_id = getCurrentUserId()
-    c.execute(f"SELECT a.word FROM associate a NATURAL JOIN Photos p WHERE p.user_id = {user_id}")
+    c.execute(f"SELECT DISTINCT a.word FROM associate a NATURAL JOIN Photos p WHERE p.user_id = {user_id}")
     conn.commit()
     tags = [x[0] for x in c.fetchall()]
     return render_template('viewByTag.html',tags=tags,viewType="User")

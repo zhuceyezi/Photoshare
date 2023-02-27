@@ -91,8 +91,8 @@ INSERT INTO Users (email, password) VALUES ('test@bu.edu', 'test');
 INSERT INTO Users (email, password) VALUES ('test1@bu.edu', 'test');
 INSERT INTO Albums (album_name, user_id, date_created) VALUES ("test", 1, "2023-02-08");
 INSERT INTO Tags (word) VALUES ("test_tag");
---INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (1,30,"Nice Finger!","2023-02-15");
---INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (2,30,"I Hate you","2023-02-15");
+-- INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (1,30,"Nice Finger!","2023-02-15");
+-- INSERT INTO Comments (user_id,photo_id,content,date_comment) VALUES (2,30,"I Hate you","2023-02-15");
 INSERT INTO Users (user_id,first_name, last_name) VALUES (-1, "Anonymous", "Visitor");
 INSERT INTO be_friend (user_id_from,user_id_to) VALUES (2,1);
 INSERT INTO be_friend (user_id_from,user_id_to) VALUES (3,1);
@@ -103,10 +103,11 @@ WHERE c.content = 'test' GROUP BY u.user_id ORDER BY COUNT(*) DESC;
 
 ALTER TABLE Users ADD COLUMN dob DATE;
 
-
+-- count photo contribution
 WITH cp(cp,uid) AS (
 SELECT COUNT(p.user_id), u.user_id FROM Photos p, Users u WHERE p.user_id = u.user_id GROUP BY u.user_id
 ),
+-- count contribution 
 cc(cc,uid) AS (
 SELECT COUNT(c.user_id), u.user_id FROM Comments c, Users u WHERE c.user_id = u.user_id GROUP BY u.user_id
 )
@@ -114,10 +115,19 @@ SELECT (IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp RIGHT OUTER JOIN cc O
 UNION
 SELECT (IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp LEFT OUTER JOIN cc ON cc.uid = cp.uid;
 
-
+-- sql for u may also like: 
 With f(user_id) as (SELECT u.user_id from be_friend b JOIN users u ON b.user_id_to = u.user_id WHERE b.user_id_from = 1)
 (SELECT u.user_id, u.first_name,u.last_name,u.email from be_friend b JOIN users u ON b.user_id_to = u.user_id);
 
 SELECT u.user_id, u.first_name, u.last_name, u.email from be_friend f JOIN users u ON f.user_id_to = u.user_id WHERE f.user_id_from = 1;
 
-SELECT u.first_name, u.last_name, u.email FROM user_like_photo l NATURAL JOIN Users u Where photo_id = 1;
+SELECT u.first_name, u.last_name, u.email FROM user_like_photo l NATURAL JOIN Users u Where photo_id = 1; -- -1 show status as visitor(not log in)
+
+
+select * from Users;
+select * from be_friend;
+
+
+
+
+
