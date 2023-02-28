@@ -560,7 +560,7 @@ def deletePhoto():
     cursor = conn.cursor()
     cursor.execute(f"DELETE FROM Photos WHERE photo_id = '{photo_id}'")
     conn.commit()
-    return render_template("open_album.html", photos=getPhotosFromAlbum(album_id), album_id=album_id, album_name=album_name, message="Photo deleted!", base64=base64)
+    return render_template("open_album.html", photos=getPhotosFromAlbum(album_id), album_id=album_id, album_name=album_name, message="Photo deleted!", base64=base64, isMyPhoto=isMyPhoto,getOwnerId=getOwnerId)
 
 
 def unassociateTag(word, photo_id):
@@ -1086,6 +1086,9 @@ def isMyPhoto(photo_id):
 @app.route('/top_users', methods=['GET'])
 def top_users():
     c = conn.cursor()
+    # cp as count of photos, cc as count of comments
+    # consider both case that a user has only upload photos or only write comments while the other data is Null, so we use LEFT/right OUTER JOIN 
+    # And union both cases as result( sum, uid)
     c.execute(f"WITH cp(cp, uid) AS(\
         SELECT COUNT(p.user_id), u.user_id FROM Photos p, Users u WHERE p.user_id=u.user_id GROUP BY u.user_id\
     ),\
@@ -1251,7 +1254,7 @@ def photoRecommendation(user_id):
 def hello():
     return render_template('hello.html', message='Welecome to Photoshare')
 
-5
+
 if __name__ == "__main__":
     # this is invoked when in the shell  you run
     # $ python app.py

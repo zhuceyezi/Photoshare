@@ -15,7 +15,7 @@ CREATE TABLE Users ( -- capitalized entitys for notations
 	first_name VARCHAR(20),
 	last_name VARCHAR(20),
     email VARCHAR(30) UNIQUE,
-    dob DATE,
+    dob DATE,       -- date of birth is not required for sign up
     hometown VARCHAR(20),
     gender VARCHAR(20),
     password VARCHAR(255) NOT NULL,
