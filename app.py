@@ -25,7 +25,7 @@ app.secret_key = 'aleafy'  # Change this!
 visitor_id = -1
 # These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'Huohx123'             # change this 'zhuceyezi'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'zhuceyezi'             # change this 'zhuceyezi'
 app.config['MYSQL_DATABASE_DB'] = 'pa1'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -556,12 +556,25 @@ def deleteTag(word):
 def deletePhoto():
     photo_id = request.args.get('photo_id')
     album_id = request.args.get('album_id')
-    album_name = request.args.get('album_name')
+    src = request.args.get("src")
     cursor = conn.cursor()
     cursor.execute(f"DELETE FROM Photos WHERE photo_id = '{photo_id}'")
     conn.commit()
-    return render_template("open_album.html", photos=getPhotosFromAlbum(album_id), album_id=album_id, album_name=album_name, message="Photo deleted!", base64=base64, isMyPhoto=isMyPhoto,getOwnerId=getOwnerId)
-
+    if src == 'open_album':         # if the user is coming from the open_album page
+        return redirect(url_for('open_album', album_id=album_id))
+    elif src == 'gallery':          # if the user is coming from the gallery page
+        return redirect(url_for('getAllPhotos'))
+    elif src == 'photo_recommendation':
+        return redirect(url_for('photo_recommendation'))
+    elif src == 'searchPhotoByTags':
+        str = request.args.get('str')
+        return redirect(url_for('searchPhotoByTags', str=str))
+    elif src == 'viewAllByTag':
+        tag = request.args.get("tag")
+        return redirect(url_for('viewAllPhotosByTag', tag=tag))
+    elif src == 'viewUserByTag':
+        tag = request.args.get("tag")
+        return redirect(url_for('viewUserPhotosByTag', tag=tag))
 
 def unassociateTag(word, photo_id):
     cursor = conn.cursor()
