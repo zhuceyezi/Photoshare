@@ -1097,7 +1097,7 @@ def top_users():
         UNION\
         SELECT(IFNULL(cc.cc, 0)+IFNULL(cp.cp, 0)), cp.uid FROM cp LEFT OUTER JOIN cc ON cc.uid=cp.uid\
     )\
-        SELECT u.first_name, u.last_name, u.email, r.sum FROM result r JOIN Users u ON r.uid = u.user_id WHERE r.uid <> -1 ORDER BY r.sum DESC LIMIT 10\
+        SELECT u.first_name, u.last_name, u.email, r.sum FROM result r JOIN Users u ON r.uid = u.user_id WHERE r.uid <> -1 ORDER BY r.sum DESC LIMIT 3\
         ")
     conn.commit()
     topten = c.fetchall()
