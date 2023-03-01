@@ -890,7 +890,7 @@ def unlikePhoto():
     elif src == 'searchPhotoByTags':
         str = request.args.get('str')
         return redirect(url_for('searchPhotoByTags', str=str))
-    elif src == 'viewByTag':
+    elif src == 'viewAllByTag':
         tag = request.args.get("tag")
         return redirect(url_for('viewAllPhotosByTag', tag=tag))
     elif src == 'viewUserByTag':
