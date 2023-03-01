@@ -86,5 +86,6 @@ CREATE TABLE Comments(
     -- addtional constraint: user cannot comment on own photo
     -- can't really implement in mysql
 );
-INSERT INTO Users (user_id,first_name, last_name) VALUES (-1, "Anonymous", "Visitor");
+INSERT INTO Users (user_id,first_name, last_name, password) VALUES (-1, "Anonymous", "Visitor","");
 -- important, part of assumption 
+
