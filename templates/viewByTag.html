@@ -18,10 +18,10 @@
   </li>
   <a href="/comments?photo_id={{photo[1]}}"> [Comments] </a>
   {% if user_id != -1 and user_id != getOwnerId(photo[1]) and notLiked(user_id,photo[1]) %}
-  <a href="/like?photo_id={{photo[1]}}&src=viewByTag&tag={{tag}}"> [Like this Photo]</a>
+  <a href="/like?photo_id={{photo[1]}}&src=viewAllByTag&tag={{tag}}"> [Like this Photo]</a>
   {% endif %}
   {% if not notLiked(user_id,photo[1]) %}
-  <a href="/unlike?photo_id={{photo[1]}}&src=viewByTag&tag={{tag}}">[Unlike]</a>
+  <a href="/unlike?photo_id={{photo[1]}}&src=viewAllByTag&tag={{tag}}">[Unlike]</a>
   {% endif %}
   <a href="/like_data?photo_id={{photo[1]}}">[Like data]</a>
   <br />
