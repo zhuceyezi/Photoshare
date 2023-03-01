@@ -704,9 +704,9 @@ def viewMostPopularTags():
         popularity order."""
     cursor = conn.cursor()
     cursor.execute(
-        f"WITH t3c(count) as (SELECT count FROM (SELECT word, COUNT(photo_id) as count FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3) as x),\
+        f"WITH t3c(count) as (SELECT DISTINCT count FROM (SELECT word, COUNT(photo_id) as count FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC LIMIT 3) as x),\
 tac(word,count) as (SELECT word, count FROM (SELECT word, COUNT(photo_id) as count FROM associate GROUP BY word ORDER BY COUNT(photo_id) DESC) as x)\
-(SELECT DISTINCT tac.word, t3c.count FROM tac NATURAL JOIN t3c)")
+(SELECT tac.word, t3c.count FROM tac NATURAL JOIN t3c)")
     conn.commit()
     tags = cursor.fetchall()
     return render_template('viewMostPopularTags.html', tags=tags)
