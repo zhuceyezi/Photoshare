@@ -687,7 +687,7 @@ def viewUserPhotosByTag():
     tag = request.args.get('tag')
     c = conn.cursor()
     user_id = getCurrentUserId()
-    c.execute(f"SELECT a.word FROM associate a NATURAL JOIN Photos p WHERE p.user_id = '{user_id}'")
+    c.execute(f"SELECT DISTINCT a.word FROM associate a NATURAL JOIN Photos p WHERE p.user_id = '{user_id}'")
     conn.commit()
     tags = [x[0] for x in c.fetchall()]
     
